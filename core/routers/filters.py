@@ -209,11 +209,18 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
                      result["binding_energy"], result["removal_efficiency"],
                      result["method"])
 
+            func_density = result.get("functionalization_density", 0.6)
+            # Hydrophobic microplastics (C-backbone polymers) bind better to
+            # bare graphene. Reduce functionalization to preserve surface area
+            # for van der Waals / π-π capture.
+            if p_symbol.upper() in _HYDROPHOBIC_POLLUTANTS:
+                func_density = min(func_density, 0.25)
+
             atom_positions, connections = generate_atom_positions(
                 lattice_spacing=result["lattice_spacing"],
                 material_type=result["material_type"],
                 pollutant_symbol=p_symbol,
-                functionalization_density=result.get("functionalization_density", 0.6),
+                functionalization_density=func_density,
                 doping_level=result.get("doping_level", 0.15),
             )
 
@@ -335,6 +342,11 @@ _HEAVY_METALS = {
 }
 # Pollutants that favour amine groups (anionic / nitrogen-based)
 _ANION_POLLUTANTS = {"F", "CL", "BR", "N", "P", "S", "SE"}
+
+# Hydrophobic microplastics: bare graphene surface captures better than
+# functionalized (van der Waals / π-π stacking — functionalization reduces
+# available hydrophobic surface area).
+_HYDROPHOBIC_POLLUTANTS = {"C"}  # PE, PP, PS, EPS, ABS, rubber all map to C
 
 
 def generate_atom_positions(
