@@ -1,0 +1,6 @@
+name: Blau Field Station
+description: "Deployable environmental water-quality station for Blau"
+icon: "💧"
+version: "1.0.0"
+ports: []
+bricks: []
