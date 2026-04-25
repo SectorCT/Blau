@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AppHeader } from './components/AppHeader'
 import { LoginForm } from './components/LoginForm'
+import { MeasurementsPanel } from './components/MeasurementsPanel'
 import { StatusBanner } from './components/StatusBanner'
 import { StudiesPanel } from './components/StudiesPanel'
 import { TOKEN_KEY } from './lib/config'
@@ -165,34 +166,16 @@ function App() {
             onSubmit={onCreateStudy}
           />
 
-          <section className="card">
-            <h2>Measurements</h2>
-            <form onSubmit={onCreateMeasurement} className="grid">
-              <label>
-                Location Name
-                <input value={newLocationName} onChange={(event) => setNewLocationName(event.target.value)} required />
-              </label>
-              <label>
-                pH
-                <input value={newPh} onChange={(event) => setNewPh(event.target.value)} type="number" step="0.1" />
-              </label>
-              <label>
-                Temperature
-                <input value={newTemperature} onChange={(event) => setNewTemperature(event.target.value)} type="number" step="0.1" />
-              </label>
-              <button type="submit">Create Measurement</button>
-            </form>
-            <ul>
-              {measurements.map((measurement) => (
-                <li key={measurement.id}>
-                  <strong>{measurement.location_name || 'Unknown location'}</strong>
-                  <span>
-                    pH {measurement.ph ?? '-'} | Temp {measurement.temperature ?? '-'} C
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <MeasurementsPanel
+            measurements={measurements}
+            newLocationName={newLocationName}
+            newPh={newPh}
+            newTemperature={newTemperature}
+            onLocationNameChange={setNewLocationName}
+            onPhChange={setNewPh}
+            onTemperatureChange={setNewTemperature}
+            onSubmit={onCreateMeasurement}
+          />
 
           <section className="card">
             <h2>Filters</h2>
