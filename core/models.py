@@ -8,12 +8,18 @@ class MeasurementParam(BaseModel):
     unit: str | None = None
 
 
+class EnrichmentConfig(BaseModel):
+    enabled: bool = False
+    minerals: list[str] = []  # keys from ENRICHMENT_MINERALS
+
+
 class GenerateRequest(BaseModel):
     measurementId: str
     temperature: float = Field(default=25.0, ge=-5.0, le=100.0)
     ph: float = Field(default=7.0, ge=0.0, le=14.0)
     params: list[MeasurementParam] = []
     useQuantumComputer: bool = False
+    enrichment: EnrichmentConfig = Field(default_factory=EnrichmentConfig)
 
 
 class FilterStatus(BaseModel):
@@ -41,6 +47,9 @@ class LayerInfo(BaseModel):
     bindingEnergy: float
     removalEfficiency: float
     method: str = "hf"
+    mode: str = "filtration"          # "filtration" or "enrichment"
+    releaseRate: Optional[float] = None   # enrichment layers only
+    targetConcentration: Optional[str] = None  # e.g. "20-80 mg/L"
     atomPositions: list[AtomPosition] = []
     connections: list[dict[str, Any]] = []
 
@@ -62,6 +71,7 @@ class FilterInfo(BaseModel):
     # "from" is a reserved keyword so stored as plain dicts, not a nested model.
     connections: list[dict[str, Any]] = []
     layers: list[LayerInfo] = []
+    enrichmentSummary: dict[str, Any] = {}
 
 
 class FilterDetails(BaseModel):

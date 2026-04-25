@@ -180,3 +180,134 @@ def optimize_filter(
         "converged": final_result["converged"],
         "method": final_result.get("method", "unknown"),
     }
+
+
+def _evaluate_enrichment(individual, mineral_symbol, mineral_charge,
+                         temperature, ph, target_binding_ev=-0.15,
+                         use_quantum_computer=False):
+    """Fitness for enrichment layers: peaks when binding ≈ target_binding_ev.
+
+    Unlike filtration (maximize |binding|), enrichment needs moderate binding
+    so minerals are held during storage but released during water flow.
+    Uses Gaussian fitness: exp(-50 * (E - target)²), giving ~0.1 eV half-width.
+    """
+    pore_size = individual[0]
+    result = compute_binding_energy(
+        pollutant_symbol=mineral_symbol,
+        pollutant_charge=mineral_charge,
+        pore_size_nm=pore_size,
+        temperature_c=temperature,
+        ph=ph,
+        use_quantum_computer=use_quantum_computer,
+    )
+    deviation = result["binding_energy"] - target_binding_ev
+    fitness = math.exp(-50.0 * deviation * deviation)
+    return (fitness,)
+
+
+def optimize_enrichment_layer(
+    mineral_symbol: str,
+    mineral_charge: int,
+    temperature: float = 25.0,
+    ph: float = 7.0,
+    target_binding_ev: float = -0.15,
+    pop_size: int = 8,
+    n_gen: int = 3,
+    use_quantum_computer: bool = False,
+) -> dict:
+    """GA optimization for enrichment layers.
+
+    Same GA mechanics as optimize_filter() but fitness targets moderate binding
+    energy (~-0.15 eV) for controlled mineral release into treated water.
+    Returns release_rate estimated via Arrhenius: exp(-|E_bind| / kT).
+    """
+    if not hasattr(creator, "FitnessMax"):
+        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+    if not hasattr(creator, "Individual"):
+        creator.create("Individual", list, fitness=creator.FitnessMax)
+
+    toolbox = base.Toolbox()
+    toolbox.register("individual", _init_individual, creator.Individual)
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register(
+        "evaluate", _evaluate_enrichment,
+        mineral_symbol=mineral_symbol,
+        mineral_charge=mineral_charge,
+        temperature=temperature,
+        ph=ph,
+        target_binding_ev=target_binding_ev,
+        use_quantum_computer=use_quantum_computer,
+    )
+    toolbox.register("mate", tools.cxTwoPoint)
+    toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.3, indpb=0.3)
+    toolbox.register("select", tools.selTournament, tournsize=3)
+
+    pop = toolbox.population(n=pop_size)
+    logger.info("Enrichment GA: evaluating initial population of %d for %s", pop_size, mineral_symbol)
+
+    fitnesses = list(map(toolbox.evaluate, pop))
+    for ind, fit in zip(pop, fitnesses):
+        ind.fitness.values = fit
+
+    for gen in range(n_gen):
+        offspring = toolbox.select(pop, len(pop))
+        offspring = list(map(toolbox.clone, offspring))
+        for child1, child2 in zip(offspring[::2], offspring[1::2]):
+            if random.random() < 0.7:
+                toolbox.mate(child1, child2)
+                _clamp_individual(child1)
+                _clamp_individual(child2)
+                del child1.fitness.values
+                del child2.fitness.values
+        for mutant in offspring:
+            if random.random() < 0.3:
+                toolbox.mutate(mutant)
+                _clamp_individual(mutant)
+                del mutant.fitness.values
+        invalid = [ind for ind in offspring if not ind.fitness.valid]
+        fitnesses = list(map(toolbox.evaluate, invalid))
+        for ind, fit in zip(invalid, fitnesses):
+            ind.fitness.values = fit
+        pop[:] = offspring
+        gen_best = max(ind.fitness.values[0] for ind in pop)
+        logger.info("Enrichment GA gen %d: best_fitness=%.6f", gen + 1, gen_best)
+
+    best = tools.selBest(pop, 1)[0]
+    final_result = compute_binding_energy(
+        pollutant_symbol=mineral_symbol,
+        pollutant_charge=mineral_charge,
+        pore_size_nm=best[0],
+        temperature_c=temperature,
+        ph=ph,
+        use_quantum_computer=use_quantum_computer,
+    )
+
+    material_idx = int(round(best[2]))
+    material_idx = max(0, min(material_idx, len(MATERIAL_TYPES) - 1))
+    func_density = round(max(GENE_BOUNDS[3][0], min(GENE_BOUNDS[3][1], best[3])), 4)
+    doping = round(max(GENE_BOUNDS[4][0], min(GENE_BOUNDS[4][1], best[4])), 4)
+
+    # Release rate peaks at 100% when binding matches the physisorption target,
+    # and decays as binding deviates — stronger binding means the mineral
+    # stays on the membrane rather than releasing into the water.
+    deviation = abs(final_result["binding_energy"]) - abs(target_binding_ev)
+    release_rate_percent = round(100.0 * math.exp(-10.0 * deviation * deviation), 2)
+
+    logger.info("Enrichment GA complete for %s — binding=%.4f eV, release_rate=%.2f%%",
+                mineral_symbol, final_result["binding_energy"], release_rate_percent)
+
+    return {
+        "pore_size": round(best[0], 4),
+        "layer_thickness": round(best[1], 4),
+        "lattice_spacing": LATTICE_SPACING,
+        "material_type": MATERIAL_TYPES[material_idx],
+        "functionalization_density": func_density,
+        "doping_level": doping,
+        "binding_energy": final_result["binding_energy"],
+        "removal_efficiency": final_result["removal_efficiency"],
+        "converged": final_result["converged"],
+        "method": final_result.get("method", "unknown"),
+        "mode": "enrichment",
+        "target_binding_ev": target_binding_ev,
+        "release_rate": release_rate_percent,
+    }
