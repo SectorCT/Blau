@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AppHeader } from './components/AppHeader'
+import { FiltersPanel } from './components/FiltersPanel'
 import { LoginForm } from './components/LoginForm'
 import { MeasurementsPanel } from './components/MeasurementsPanel'
 import { StatusBanner } from './components/StatusBanner'
@@ -177,42 +178,16 @@ function App() {
             onSubmit={onCreateMeasurement}
           />
 
-          <section className="card">
-            <h2>Filters</h2>
-            <form onSubmit={onGenerateFilter} className="grid">
-              <label>
-                Measurement
-                <select value={selectedMeasurementId} onChange={(event) => setSelectedMeasurementId(event.target.value)} required>
-                  <option value="">Choose measurement</option>
-                  {measurements.map((measurement) => (
-                    <option key={measurement.id} value={measurement.id}>
-                      {measurement.location_name || measurement.id}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Study (optional)
-                <select value={selectedStudyId} onChange={(event) => setSelectedStudyId(event.target.value)}>
-                  <option value="">No study</option>
-                  {studies.map((study) => (
-                    <option key={study.id} value={study.id}>
-                      {study.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button type="submit">Generate Filter</button>
-            </form>
-            <ul>
-              {filters.map((filterItem) => (
-                <li key={filterItem.id}>
-                  <strong>{filterItem.id}</strong>
-                  <span>Status: {filterItem.status || 'unknown'}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <FiltersPanel
+            filters={filters}
+            measurements={measurements}
+            studies={studies}
+            selectedMeasurementId={selectedMeasurementId}
+            selectedStudyId={selectedStudyId}
+            onMeasurementChange={setSelectedMeasurementId}
+            onStudyChange={setSelectedStudyId}
+            onSubmit={onGenerateFilter}
+          />
         </div>
       )}
     </main>
