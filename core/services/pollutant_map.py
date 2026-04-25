@@ -454,6 +454,46 @@ POLLUTANT_MAP: dict[str, tuple[str, int, str]] = {
     "atenolol":     ("N",   0,  "Atenolol (beta blocker)"),
     "beta blocker": ("N",   0,  "Beta blocker"),
     "anniline":     ("N",   0,  "Aniline derivative"),
+
+    # ── Microplastics / Nanoplastics ──────────────────────────────────────────
+    # Modeled by their dominant surface interaction atom.
+    # PE/PP/PS: C-H backbone interacts via van der Waals / π-π stacking → C
+    # PET/PMMA/PC: ester oxygen is the polar binding site → O
+    # PVC: chlorine dominates surface interaction → Cl
+    # Nylon/PU: amide nitrogen is the binding site → N
+    "pe":                           ("C",   0,  "Polyethylene (PE) microplastic"),
+    "polyethylene":                 ("C",   0,  "Polyethylene (PE) microplastic"),
+    "hdpe":                         ("C",   0,  "High-density polyethylene microplastic"),
+    "ldpe":                         ("C",   0,  "Low-density polyethylene microplastic"),
+    "pp":                           ("C",   0,  "Polypropylene (PP) microplastic"),
+    "polypropylene":                ("C",   0,  "Polypropylene (PP) microplastic"),
+    "ps":                           ("C",   0,  "Polystyrene (PS) microplastic"),
+    "polystyrene":                  ("C",   0,  "Polystyrene (PS) microplastic"),
+    "eps":                          ("C",   0,  "Expanded polystyrene (EPS) microplastic"),
+    "pet":                          ("O",   0,  "PET microplastic"),
+    "polyethylene terephthalate":   ("O",   0,  "PET microplastic"),
+    "pvc":                          ("Cl",  0,  "PVC microplastic"),
+    "polyvinyl chloride":           ("Cl",  0,  "PVC microplastic"),
+    "nylon":                        ("N",   0,  "Nylon (polyamide) microplastic"),
+    "polyamide":                    ("N",   0,  "Polyamide microplastic"),
+    "pa6":                          ("N",   0,  "Nylon-6 microplastic"),
+    "pa66":                         ("N",   0,  "Nylon-6,6 microplastic"),
+    "pmma":                         ("O",   0,  "PMMA (acrylic) microplastic"),
+    "acrylic":                      ("O",   0,  "Acrylic microplastic"),
+    "pu":                           ("N",   0,  "Polyurethane (PU) microplastic"),
+    "polyurethane":                 ("N",   0,  "Polyurethane (PU) microplastic"),
+    "abs":                          ("C",   0,  "ABS plastic microplastic"),
+    "polycarbonate":                ("O",   0,  "Polycarbonate microplastic"),
+    "pc":                           ("O",   0,  "Polycarbonate microplastic"),
+    "ptfe":                         ("F",   0,  "PTFE (Teflon) microplastic"),
+    "teflon":                       ("F",   0,  "PTFE (Teflon) microplastic"),
+    "microplastic":                 ("C",   0,  "Generic microplastic"),
+    "nanoplastic":                  ("C",   0,  "Generic nanoplastic"),
+    "mp":                           ("C",   0,  "Generic microplastic"),
+    "rubber":                       ("C",   0,  "Rubber microparticle"),
+    "tire wear":                    ("C",   0,  "Tire wear microparticle"),
+    "synthetic fiber":              ("N",   0,  "Synthetic textile fiber"),
+    "polyester fiber":              ("O",   0,  "Polyester textile fiber"),
 }
 # fmt: on
 
@@ -500,6 +540,25 @@ STO3G_SUPPORTED: set[str] = {
     "K",  "Ca",
     "Sc", "Ti", "V",  "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
     "Ga", "Ge", "As", "Se", "Br", "Kr",
+}
+
+# ── Enrichment minerals ────────────────────────────────────────────────────────
+# Minerals that enrichment layers are designed to release into treated water.
+# Structure: key → (atom_symbol, charge, description, min_mg_L, max_mg_L)
+# min/max are WHO-recommended concentration ranges for drinking water.
+ENRICHMENT_MINERALS: dict[str, tuple[str, int, str, float, float]] = {
+    "calcium":    ("Ca",  2, "Calcium (Ca²⁺)",       20.0, 80.0),
+    "ca":         ("Ca",  2, "Calcium (Ca²⁺)",       20.0, 80.0),
+    "magnesium":  ("Mg",  2, "Magnesium (Mg²⁺)",     10.0, 30.0),
+    "mg":         ("Mg",  2, "Magnesium (Mg²⁺)",     10.0, 30.0),
+    "potassium":  ("K",   1, "Potassium (K⁺)",        1.0, 12.0),
+    "k":          ("K",   1, "Potassium (K⁺)",        1.0, 12.0),
+    "zinc":       ("Zn",  2, "Zinc (Zn²⁺)",           0.5,  3.0),
+    "zn":         ("Zn",  2, "Zinc (Zn²⁺)",           0.5,  3.0),
+    "selenium":   ("Se", -2, "Selenium (Se²⁻)",       0.01, 0.04),
+    "se":         ("Se", -2, "Selenium (Se²⁻)",       0.01, 0.04),
+    "silicate":   ("Si",  4, "Silicate (SiO₃²⁻)",     5.0, 15.0),
+    "si":         ("Si",  4, "Silicate (SiO₃²⁻)",     5.0, 15.0),
 }
 
 
