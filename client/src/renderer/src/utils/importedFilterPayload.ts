@@ -16,7 +16,7 @@ import {
 
 export const IMPORTED_FILTER_ROUTE_ID = 'imported' as const
 
-const SESSION_KEY = 'thegreatfilter:imported-filter-json-v1'
+const SESSION_KEY = 'blau:imported-filter-json-v1'
 
 export type ImportedFilterLocationState = {
   importedFilterJson: unknown

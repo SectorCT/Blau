@@ -1,7 +1,8 @@
-import { Minus, Search, Square, X } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
+import { WindowControls } from '@renderer/components/WindowControls'
 import { getFilters, getMeasurements, getStudies } from '@renderer/utils/api/endpoints'
 import type { FilterListItem, MeasurementListItem, Study } from '@renderer/utils/api/types'
 
@@ -229,10 +230,10 @@ export function AppTitleBar(): React.JSX.Element {
     <header className="drag-region flex h-12 items-center justify-between border-b border-border bg-card/90 px-3 backdrop-blur">
       <div className="no-drag flex items-center gap-2">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-secondary text-xs font-semibold">
-          Q
+          B
         </div>
         <span className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline">
-          Qlean
+          Blau
         </span>
         <Menu title="File">
           <MenuItem onClick={() => navigate('/add-measurement')}>
@@ -328,19 +329,7 @@ export function AppTitleBar(): React.JSX.Element {
         </div>
       </div>
 
-      <div className="no-drag flex items-center gap-3">
-        <div className="flex items-center">
-          <ControlButton onClick={() => window.api.window.minimize()}>
-            <Minus size={14} strokeWidth={1.5} />
-          </ControlButton>
-          <ControlButton onClick={() => window.api.window.toggleMaximize()}>
-            <Square size={12} strokeWidth={1.5} />
-          </ControlButton>
-          <ControlButton onClick={() => window.api.window.close()}>
-            <X size={14} strokeWidth={1.5} />
-          </ControlButton>
-        </div>
-      </div>
+      <WindowControls />
     </header>
   )
 }
@@ -384,19 +373,3 @@ function MenuItem({
   )
 }
 
-function ControlButton({
-  children,
-  onClick
-}: {
-  children: React.ReactNode
-  onClick: () => void
-}): React.JSX.Element {
-  return (
-    <button
-      onClick={onClick}
-      className="rounded-[6px] p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-    >
-      {children}
-    </button>
-  )
-}

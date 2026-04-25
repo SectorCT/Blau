@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@renderer/components/ui/button'
+import { WindowControls } from '@renderer/components/WindowControls'
 import { ApiError } from '@renderer/utils/api/makeAuthenticatedReq'
 import { getAccessToken, login, signup } from '@renderer/utils/api'
 
@@ -160,10 +161,21 @@ export function Auth(): React.JSX.Element {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="drag-region flex h-12 items-center justify-between border-b border-border bg-card/90 px-3 backdrop-blur">
+        <div className="no-drag flex items-center gap-2">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-secondary text-xs font-semibold">
+            B
+          </div>
+          <span className="text-sm font-semibold tracking-tight text-foreground">Blau</span>
+        </div>
+        <WindowControls compact />
+      </header>
+
+      <div className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Qlean</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Blau</h1>
           <p className="scientific-label mt-1">Water Quality Analysis Platform</p>
         </div>
 
@@ -241,7 +253,8 @@ export function Auth(): React.JSX.Element {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">v1.0 · Hack TUES 2026</p>
+        <p className="mt-6 text-center text-xs text-muted-foreground">Blau Platform</p>
+      </div>
       </div>
     </div>
   )

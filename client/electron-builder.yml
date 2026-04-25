@@ -1,5 +1,5 @@
-appId: com.qlean.app
-productName: Qlean
+appId: com.blau.app
+productName: Blau
 afterPack: scripts/afterPack.cjs
 directories:
   buildResources: build
@@ -13,13 +13,13 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: qlean
+  executableName: blau
   icon: build/icon.ico
   # Local builds: avoids winCodeSign 7z (symlink privilege). Re-enable for signed releases.
   signAndEditExecutable: false
 nsis:
   # Stable filename for hosting.
-  artifactName: qlean-setup.${ext}
+  artifactName: blau-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always

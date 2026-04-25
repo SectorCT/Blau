@@ -9,7 +9,7 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_ICON = ROOT / "public" / "TheGreatFilterIcon.png"
+SOURCE_ICON = ROOT / "public" / "BlauIcon.png"
 BUILD_DIR = ROOT / "build"
 LINUX_ICONS_DIR = BUILD_DIR / "icons"
 ICONSET_DIR = BUILD_DIR / "icon.iconset"

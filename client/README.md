@@ -23,7 +23,7 @@ $ npm run dev
 ### Build
 
 ```bash
-# Generate platform icon files from public/TheGreatFilterIcon.png
+# Generate platform icon files from public/BlauIcon.png
 $ npm run make:icons
 
 # For Windows installer
