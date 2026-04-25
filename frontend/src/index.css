@@ -27,6 +27,11 @@ body {
   margin-bottom: 1rem;
 }
 
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .layout {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -67,6 +72,10 @@ button {
   background: #0ea5e9;
   color: #fff;
   border: 0;
+}
+
+.button-secondary {
+  background: #334155;
 }
 
 ul {

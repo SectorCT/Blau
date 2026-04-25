@@ -135,7 +135,15 @@ function App() {
 
   return (
     <main className="container">
-      <AppHeader isAuthenticated={isAuthenticated} onLogout={onLogout} />
+      <AppHeader
+        isAuthenticated={isAuthenticated}
+        onLogout={onLogout}
+        onRefresh={() => {
+          refreshData().catch((error: unknown) => {
+            setStatusMessage(error instanceof Error ? error.message : 'Unable to load data')
+          })
+        }}
+      />
 
       <StatusBanner message={statusMessage} />
 
