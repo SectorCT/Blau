@@ -20,11 +20,15 @@ import {
   YAxis
 } from 'recharts'
 import { Breadcrumbs } from '@renderer/components/Breadcrumbs'
-import { StatusBadge } from '@renderer/components/StatusBadge'
+import { FilterStatusWithProgress, StatusBadge } from '@renderer/components/StatusBadge'
 import { Button } from '@renderer/components/ui/button'
 import { isFilterStatusWaiting } from '@renderer/hooks/usePollPendingFilterStatuses'
 import { exportFilterCsv, getFilterDetails, getFilterStatus } from '@renderer/utils/api/endpoints'
-import { type FilterDetailsSuccessResponse, type FilterStatus } from '@renderer/utils/api/types'
+import {
+  type FilterDetailsSuccessResponse,
+  type FilterStatus,
+  type FilterStatusRefreshResponse
+} from '@renderer/utils/api/types'
 
 /** UI-only: JSON import is not a server job status. */
 type FilterDetailsPageStatus = FilterStatus | 'Imported'
@@ -45,6 +49,46 @@ const toSafeFileStem = (value: string): string => {
   return normalized || 'filter'
 }
 
+const METHOD_LABELS: Record<string, { label: string; tone: string; title?: string }> = {
+  ionic_empirical: {
+    label: 'Ionic (empirical)',
+    tone: 'border-blue-300 bg-blue-50 text-blue-900 dark:border-blue-400/40 dark:bg-blue-400/10 dark:text-blue-100',
+    title: 'DFT-D3+U calibrated empirical model for charged pollutants.'
+  },
+  vdw_empirical: {
+    label: 'vdW (empirical)',
+    tone: 'border-violet-300 bg-violet-50 text-violet-900 dark:border-violet-400/40 dark:bg-violet-400/10 dark:text-violet-100',
+    title: 'DFT-D3 calibrated van der Waals model for neutral organics / microplastics.'
+  },
+  mixed_empirical: {
+    label: 'Mixed empirical',
+    tone: 'border-slate-300 bg-slate-100 text-slate-900 dark:border-slate-500/40 dark:bg-slate-500/10 dark:text-slate-100',
+    title: 'Multiple empirical methods used across layers in this filter.'
+  },
+  vqe_ibm: {
+    label: 'Real quantum (IBM)',
+    tone: 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-100',
+    title: 'VQE executed on IBM Quantum hardware.'
+  }
+}
+
+function MethodChip({ method }: { method: string | null | undefined }): React.JSX.Element | null {
+  if (!method) return null
+  const meta = METHOD_LABELS[method] ?? {
+    label: method,
+    tone: 'border-border bg-muted text-foreground',
+    title: undefined
+  }
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${meta.tone}`}
+      title={meta.title}
+    >
+      {meta.label}
+    </span>
+  )
+}
+
 export function FilterDetails(): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
@@ -55,6 +99,11 @@ export function FilterDetails(): React.JSX.Element {
     return readImportedFilterSession(location)
   }, [isImported, location.state])
   const [status, setStatus] = useState<FilterDetailsPageStatus | null>(null)
+  const [progress, setProgress] = useState<{
+    progressPercent?: number
+    currentStep?: string
+    internalStatus?: string
+  }>({})
   const [details, setDetails] = useState<FilterDetailsSuccessResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -87,6 +136,7 @@ export function FilterDetails(): React.JSX.Element {
 
     let isMounted = true
     setStatus(null)
+    setProgress({})
     const loadStatus = async (): Promise<void> => {
       if (!id) return
       setIsLoading(true)
@@ -94,13 +144,21 @@ export function FilterDetails(): React.JSX.Element {
       try {
         const response = await getFilterStatus(id)
         if (!isMounted) return
-        setStatus(response.status)
+        applyStatusResponse(response)
       } catch (fetchError) {
         if (!isMounted) return
         setError(fetchError instanceof Error ? fetchError.message : 'Failed to load filter status.')
       } finally {
         if (isMounted) setIsLoading(false)
       }
+    }
+    const applyStatusResponse = (response: FilterStatusRefreshResponse): void => {
+      setStatus(response.status)
+      setProgress({
+        progressPercent: response.progressPercent,
+        currentStep: response.currentStep,
+        internalStatus: response.internalStatus
+      })
     }
     void loadStatus()
     return () => {
@@ -119,6 +177,11 @@ export function FilterDetails(): React.JSX.Element {
         const response = await getFilterStatus(id)
         if (cancelled) return
         setStatus(response.status)
+        setProgress({
+          progressPercent: response.progressPercent,
+          currentStep: response.currentStep,
+          internalStatus: response.internalStatus
+        })
       } catch {
         // Transient poll errors: keep showing the last known status.
       }
@@ -267,7 +330,10 @@ export function FilterDetails(): React.JSX.Element {
             <ArrowLeft size={16} strokeWidth={1.5} />
           </button>
           <div>
-            <h1 className="text-xl font-semibold">Filter Details</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-semibold">Filter Details</h1>
+              {dashboardReady ? <MethodChip method={view.method} /> : null}
+            </div>
             <p className="font-mono text-xs text-muted-foreground">
               {isImported && importedSession?.importedFileName ? (
                 <>
@@ -351,9 +417,24 @@ export function FilterDetails(): React.JSX.Element {
       ) : null}
 
       {!isLoading && !dashboardReady ? (
-        <div className="rounded-[6px] border border-border bg-card p-6 text-sm text-muted-foreground">
-          Filter is currently <StatusBadge status={displayStatus} />. Details and export unlock when status
-          becomes Success.
+        <div className="rounded-[6px] border border-border bg-card p-6 text-sm">
+          {isFilterStatusWaiting(status) ? (
+            <div className="space-y-3">
+              <FilterStatusWithProgress
+                status={displayStatus}
+                progressPercent={progress.progressPercent}
+                currentStep={progress.currentStep}
+              />
+              <p className="text-xs text-muted-foreground">
+                Details and export unlock when status becomes Success.
+              </p>
+            </div>
+          ) : (
+            <div className="text-muted-foreground">
+              Filter is currently <StatusBadge status={displayStatus} />. Details and export unlock when status
+              becomes Success.
+            </div>
+          )}
         </div>
       ) : null}
 
@@ -367,6 +448,120 @@ export function FilterDetails(): React.JSX.Element {
               </div>
             ))}
           </div>
+
+          {view.layerRows.length > 0 ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">Filter Composition</h2>
+                <p className="text-xs text-muted-foreground">
+                  {view.layerRows.length} layer{view.layerRows.length === 1 ? '' : 's'}
+                  {' · '}
+                  {view.layerRows.filter((r) => r.mode === 'filtration').length} filtration
+                  {' · '}
+                  {view.layerRows.filter((r) => r.mode === 'enrichment').length} enrichment
+                </p>
+              </div>
+
+              {view.enrichmentSummary?.enabled && (view.enrichmentSummary.minerals?.length ?? 0) > 0 ? (
+                <div className="rounded-[6px] border border-emerald-300 bg-emerald-50/70 px-4 py-3 text-sm dark:border-emerald-500/40 dark:bg-emerald-500/10">
+                  <span className="font-medium text-emerald-900 dark:text-emerald-100">
+                    Enriches with:
+                  </span>{' '}
+                  <span className="text-emerald-900/80 dark:text-emerald-100/80">
+                    {view.enrichmentSummary.minerals?.join(', ')}
+                  </span>
+                  <span className="ml-2 text-xs text-emerald-900/60 dark:text-emerald-100/60">
+                    · {view.enrichmentSummary.mineralCount ?? view.enrichmentSummary.minerals?.length ?? 0}{' '}
+                    mineral{(view.enrichmentSummary.mineralCount ?? view.enrichmentSummary.minerals?.length ?? 0) === 1 ? '' : 's'}
+                  </span>
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                {view.layerRows.map((row, index) => {
+                  const isEnrichment = row.mode === 'enrichment'
+                  const cardTone = isEnrichment
+                    ? 'border-emerald-300 bg-emerald-50/40 dark:border-emerald-500/40 dark:bg-emerald-500/5'
+                    : 'border-border bg-card'
+                  const modeChipTone = isEnrichment
+                    ? 'border-emerald-400/60 bg-emerald-100 text-emerald-900 dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-100'
+                    : 'border-blue-300 bg-blue-50 text-blue-900 dark:border-blue-400/40 dark:bg-blue-400/10 dark:text-blue-100'
+                  const fmtPct = (value: number | null): string =>
+                    value != null ? `${value.toFixed(2)}%` : '-'
+                  const fmtEv = (value: number | null): string =>
+                    value != null ? `${value.toFixed(4)} eV` : '-'
+                  const fmtNm = (value: number | null): string =>
+                    value != null ? `${value.toFixed(3)} nm` : '-'
+                  return (
+                    <div
+                      key={`${row.pollutantSymbol}-${index}`}
+                      className={`flex flex-col gap-3 rounded-[6px] border p-4 ${cardTone}`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">{row.pollutant}</p>
+                          <p className="font-mono text-xs text-muted-foreground">{row.pollutantSymbol}</p>
+                        </div>
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${modeChipTone}`}
+                        >
+                          {isEnrichment ? 'Enrichment' : 'Filtration'}
+                        </span>
+                      </div>
+
+                      {row.mergedPollutants.length > 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          Also captures: {row.mergedPollutants.join(', ')}
+                        </p>
+                      ) : null}
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {isEnrichment ? (
+                          <>
+                            <div>
+                              <p className="scientific-label">Target</p>
+                              <p className="font-mono">{row.targetConcentration ?? '-'}</p>
+                            </div>
+                            <div>
+                              <p className="scientific-label">Release Rate</p>
+                              <p className="font-mono">{fmtPct(row.releaseRate)}</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <p className="scientific-label">Removal</p>
+                              <p className="font-mono">{fmtPct(row.removalEfficiency)}</p>
+                            </div>
+                            <div>
+                              <p className="scientific-label">Layer Thickness</p>
+                              <p className="font-mono">{fmtNm(row.layerThickness)}</p>
+                            </div>
+                          </>
+                        )}
+                        <div>
+                          <p className="scientific-label">Pore Size</p>
+                          <p className="font-mono">{fmtNm(row.poreSize)}</p>
+                        </div>
+                        <div>
+                          <p className="scientific-label">Binding Energy</p>
+                          <p className="font-mono">{fmtEv(row.bindingEnergy)}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="scientific-label">Material</p>
+                          <p className="font-mono">{row.materialType}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <MethodChip method={row.method || null} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
             <div className="rounded-[6px] border border-border bg-card p-4">

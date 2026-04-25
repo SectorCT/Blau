@@ -195,24 +195,37 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
         z_offset = 0.0
         _INTERLAYER_GAP = 3.4  # van der Waals interlayer spacing, Å
 
+        # Reject runs that would produce zero layers (no filtration targets and
+        # no enrichment requested) — fail fast with a clear message instead of
+        # crashing later on an empty `layers` list.
+        if not pollutants and not (enrichment_enabled and enrichment_minerals):
+            raise ValueError(
+                "No filtration targets and no enrichment requested — nothing to generate"
+            )
+
         # ── Filtration GA — run all pollutant optimizations in parallel ───
-        log.info("[%s] Running %d filtration GA(s) in parallel", filter_id[:8], len(pollutants))
+        # Skip the executor entirely when there are no targets (enrichment-only run);
+        # ThreadPoolExecutor(max_workers=0) would otherwise raise ValueError.
         filtration_results: dict[int, dict] = {}
-        with ThreadPoolExecutor(max_workers=min(len(pollutants), 8)) as tpe:
-            futures = {
-                tpe.submit(
-                    optimize_filter,
-                    pollutant_symbol=p_symbol,
-                    pollutant_charge=p_charge,
-                    temperature=temperature,
-                    ph=ph,
-                    use_quantum_computer=use_quantum_computer,
-                ): idx
-                for idx, (p_symbol, p_charge, _, _, _) in enumerate(pollutants)
-            }
-            for fut in as_completed(futures):
-                idx = futures[fut]
-                filtration_results[idx] = fut.result()
+        if pollutants:
+            log.info("[%s] Running %d filtration GA(s) in parallel", filter_id[:8], len(pollutants))
+            with ThreadPoolExecutor(max_workers=min(len(pollutants), 8)) as tpe:
+                futures = {
+                    tpe.submit(
+                        optimize_filter,
+                        pollutant_symbol=p_symbol,
+                        pollutant_charge=p_charge,
+                        temperature=temperature,
+                        ph=ph,
+                        use_quantum_computer=use_quantum_computer,
+                    ): idx
+                    for idx, (p_symbol, p_charge, _, _, _) in enumerate(pollutants)
+                }
+                for fut in as_completed(futures):
+                    idx = futures[fut]
+                    filtration_results[idx] = fut.result()
+        else:
+            log.info("[%s] No filtration targets — enrichment-only run", filter_id[:8])
 
         # ── Build filtration layers sequentially (z_offset accumulation) ──
         for layer_idx, (p_symbol, p_charge, p_desc, p_value, p_merged) in enumerate(pollutants):

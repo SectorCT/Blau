@@ -140,11 +140,13 @@ export function NewFilter(): React.JSX.Element {
     [measurements, selectedMeasurementId]
   )
 
+  const hasFiltrationTargets = selectedTargetCodes.length > 0
+  const hasEnrichmentTargets = enrichmentEnabled && selectedMinerals.length > 0
   const canSubmit =
     !!selectedStudyId &&
     selectedStudyId !== NEW_STUDY_OPTION &&
     !!selectedMeasurementId &&
-    selectedTargetCodes.length > 0
+    (hasFiltrationTargets || hasEnrichmentTargets)
   const availableParameterOptions = useMemo(
     () =>
       measurementParameters
@@ -209,15 +211,21 @@ export function NewFilter(): React.JSX.Element {
 
   const selectedCodeLabels = useMemo(() => {
     const byCode = new Map(
-      measurementParameters.map((parameter) => [
-        parameter.parameterCode,
-        parameter.parameterName?.trim() || parameter.parameterCode
-      ])
+      measurementParameters.map((parameter) => [parameter.parameterCode, parameter] as const)
     )
-    return selectedTargetCodes.map((code) => ({
-      code,
-      label: byCode.get(code) ?? code
-    }))
+    return selectedTargetCodes.map((code) => {
+      const parameter = byCode.get(code)
+      const label = parameter?.parameterName?.trim() || code
+      const value = parameter?.value
+      const unit = parameter?.unit?.trim()
+      const valueText =
+        typeof value === 'number' && Number.isFinite(value)
+          ? unit
+            ? `${value} ${unit}`
+            : String(value)
+          : null
+      return { code, label, valueText }
+    })
   }, [measurementParameters, selectedTargetCodes])
 
   const microplasticCodeLabels = useMemo(
@@ -501,7 +509,10 @@ export function NewFilter(): React.JSX.Element {
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {selectedCodeLabels.length === 0 ? (
-                  <span className="text-xs text-muted-foreground">No impurities selected yet.</span>
+                  <span className="text-xs text-muted-foreground">
+                    No impurities selected. Skip this section to generate an enrichment-only filter
+                    (enable enrichment below and pick at least one mineral).
+                  </span>
                 ) : null}
                 {microplasticCodeLabels.map((item) => (
                   <button
@@ -511,7 +522,8 @@ export function NewFilter(): React.JSX.Element {
                     className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs text-blue-900 transition-colors hover:bg-blue-100 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-100"
                     title="Remove"
                   >
-                    MP | {item.label} ({item.code}) x
+                    MP | {item.label} ({item.code})
+                    {item.valueText ? ` · ${item.valueText}` : ''} x
                   </button>
                 ))}
                 {standardCodeLabels.map((item) => (
@@ -522,7 +534,8 @@ export function NewFilter(): React.JSX.Element {
                     className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs transition-colors hover:bg-secondary"
                     title="Remove"
                   >
-                    {item.label} ({item.code}) x
+                    {item.label} ({item.code})
+                    {item.valueText ? ` · ${item.valueText}` : ''} x
                   </button>
                 ))}
               </div>

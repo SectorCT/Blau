@@ -99,10 +99,20 @@ class GenerateFilterSerializer(serializers.Serializer):
 class GeneratedFilterStatusSerializer(serializers.ModelSerializer):
     filterId = serializers.UUIDField(source="id", read_only=True)
     updatedAt = serializers.DateTimeField(source="updated_at", read_only=True)
+    progressPercent = serializers.IntegerField(source="progress_percent", read_only=True)
+    currentStep = serializers.CharField(source="current_step", read_only=True)
+    internalStatus = serializers.CharField(source="internal_status", read_only=True)
 
     class Meta:
         model = GeneratedFilter
-        fields = ["filterId", "status", "updatedAt"]
+        fields = [
+            "filterId",
+            "status",
+            "updatedAt",
+            "progressPercent",
+            "currentStep",
+            "internalStatus",
+        ]
 
 
 class GeneratedFilterDetailSerializer(serializers.ModelSerializer):

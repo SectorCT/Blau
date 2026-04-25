@@ -244,6 +244,10 @@ export type FilterListItem = {
   useQuantumComputer?: boolean | null
   status: FilterStatus
   createdAt: string // ISO-8601
+  /** Populated by the per-id status poll while a filter is still in flight. */
+  progressPercent?: number | null
+  currentStep?: string | null
+  internalStatus?: string | null
 }
 
 export type FilterListResponse =
@@ -280,6 +284,10 @@ export type FilterStatusRefreshResponse = {
   filterId: string
   status: FilterStatus
   updatedAt: string // ISO-8601
+  /** Optional: present once the Django serializer exposes them. Older deployments may omit. */
+  progressPercent?: number
+  currentStep?: string
+  internalStatus?: string
 }
 
 export type FilterStructureLayerSlice = {
@@ -291,6 +299,8 @@ export type FilterStructureLayerSlice = {
   materialType?: string
 }
 
+export type FilterLayerMode = 'filtration' | 'enrichment'
+
 export type FilterLayerRow = {
   method?: string
   poreSize?: number
@@ -300,6 +310,20 @@ export type FilterLayerRow = {
   layerThickness?: number
   pollutantSymbol?: string
   removalEfficiency?: number
+  /** "filtration" (default) vs "enrichment" — distinguishes mineral release layers. */
+  mode?: FilterLayerMode | string
+  /** Enrichment-only: percent of the bound mineral re-released per cycle. */
+  releaseRate?: number | null
+  /** Enrichment-only: target concentration band, e.g. "20-80 mg/L". */
+  targetConcentration?: string | null
+  /** Microplastics merged into this single C/O/N/Cl/F layer (e.g. ["PE","PP","PS"]). */
+  mergedPollutants?: string[]
+}
+
+export type FilterEnrichmentSummary = {
+  enabled?: boolean
+  mineralCount?: number
+  minerals?: string[]
 }
 
 export type FilterInfo = {
@@ -334,6 +358,11 @@ export type FilterInfo = {
     removalEfficiency?: number
     pollutant?: string
     pollutantSymbol?: string
+    /** Top-level binding-energy method label: ionic_empirical | vdw_empirical | mixed_empirical | vqe_ibm. */
+    method?: string
+    /** Mirror of `info.layers` — some payload variants nest layers here too. */
+    layers?: FilterLayerRow[]
+    enrichmentSummary?: FilterEnrichmentSummary
   }
   summaryMetrics?: {
     parameter_count?: number

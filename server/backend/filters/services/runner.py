@@ -16,10 +16,15 @@ def _core_url() -> str:
 def _build_params(measurement, target_codes: list[str] | None = None) -> list[dict]:
     """Convert WaterMeasurement.pollutants_data → core MeasurementParam list.
 
-    When *target_codes* is non-empty, only parameters whose code (dict key
-    or parameterCode value) appears in that list are included — so the core
-    only sees the pollutants the user actually selected.
+    Semantics for *target_codes*:
+      • ``None``         → include all measurement parameters (legacy default).
+      • ``[]`` (empty)   → include no parameters; used by enrichment-only runs.
+      • non-empty list   → include only parameters whose code (dict key or
+        parameterCode value) appears in the list.
     """
+    # Explicit empty list = enrichment-only run; do not fall back to "all params".
+    if target_codes is not None and len(target_codes) == 0:
+        return []
     target_set = {c.upper() for c in target_codes} if target_codes else None
     params = []
     for code, data in (measurement.pollutants_data or {}).items():
