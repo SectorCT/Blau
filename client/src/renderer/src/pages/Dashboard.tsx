@@ -2,7 +2,7 @@ import { ArrowRight, Clock, Cpu, Droplets, FlaskConical, Plus } from 'lucide-rea
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Breadcrumbs } from '@renderer/components/Breadcrumbs'
-import { StatusBadge } from '@renderer/components/StatusBadge'
+import { FilterStatusWithProgress } from '@renderer/components/StatusBadge'
 import { Button } from '@renderer/components/ui/button'
 import { usePollPendingFilterStatuses } from '@renderer/hooks/usePollPendingFilterStatuses'
 import { getFilters, getMeasurements } from '@renderer/utils/api/endpoints'
@@ -185,7 +185,12 @@ export function Dashboard(): React.JSX.Element {
                       {formatDateYmd(item.createdAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={item.status} />
+                      <FilterStatusWithProgress
+                        status={item.status}
+                        progressPercent={item.progressPercent}
+                        currentStep={item.currentStep}
+                        compact
+                      />
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       <ArrowRight size={14} strokeWidth={1.5} />

@@ -1,4 +1,8 @@
-import type { FilterInfo, FilterLayerRow } from '@renderer/utils/api/types'
+import type {
+  FilterEnrichmentSummary,
+  FilterInfo,
+  FilterLayerRow
+} from '@renderer/utils/api/types'
 import {
   collectAtomPositions,
   collectConnections,
@@ -27,6 +31,11 @@ export type NormalizedLayerRow = {
   layerThickness: number | null
   materialType: string
   method: string
+  /** "filtration" or "enrichment" — defaults to "filtration" when missing. */
+  mode: 'filtration' | 'enrichment'
+  releaseRate: number | null
+  targetConcentration: string | null
+  mergedPollutants: string[]
 }
 
 export type FilterInfoViewModel = {
@@ -45,6 +54,10 @@ export type FilterInfoViewModel = {
     temperature: number | null
     ph: number | null
   }
+  /** Top-level binding-energy method (e.g. "mixed_empirical"). Falls back to majority across layers. */
+  method: string | null
+  /** Enrichment summary (Ca/Mg/etc.) — null when enrichment was disabled or absent. */
+  enrichmentSummary: FilterEnrichmentSummary | null
   parameterBarData: Array<{ name: string; code: string; value: number; rawValue: number; unit: string }>
   parameterRadarData: Array<{ parameter: string; value: number }>
   parameterDonutData: Array<{ name: string; code: string; value: number; rawValue: number; unit: string }>
@@ -59,16 +72,57 @@ const safeString = (value: unknown, fallback = 'n/a'): string =>
   typeof value === 'string' && value.trim().length > 0 ? value : fallback
 
 function normalizeLayerRows(layers: FilterLayerRow[]): NormalizedLayerRow[] {
-  return layers.map((row) => ({
-    pollutant: safeString(row.pollutant),
-    pollutantSymbol: safeString(row.pollutantSymbol),
-    removalEfficiency: safeNumber(row.removalEfficiency),
-    bindingEnergy: safeNumber(row.bindingEnergy),
-    poreSize: safeNumber(row.poreSize),
-    layerThickness: safeNumber(row.layerThickness),
-    materialType: safeString(row.materialType),
-    method: safeString(row.method, '')
-  }))
+  return layers.map((row) => {
+    const mode: 'filtration' | 'enrichment' =
+      typeof row.mode === 'string' && row.mode.toLowerCase() === 'enrichment' ? 'enrichment' : 'filtration'
+    const merged = Array.isArray(row.mergedPollutants)
+      ? row.mergedPollutants.filter((value): value is string => typeof value === 'string' && value.length > 0)
+      : []
+    const targetConcentration =
+      typeof row.targetConcentration === 'string' && row.targetConcentration.trim().length > 0
+        ? row.targetConcentration
+        : null
+    return {
+      pollutant: safeString(row.pollutant),
+      pollutantSymbol: safeString(row.pollutantSymbol),
+      removalEfficiency: safeNumber(row.removalEfficiency),
+      bindingEnergy: safeNumber(row.bindingEnergy),
+      poreSize: safeNumber(row.poreSize),
+      layerThickness: safeNumber(row.layerThickness),
+      materialType: safeString(row.materialType),
+      method: safeString(row.method, ''),
+      mode,
+      releaseRate: safeNumber(row.releaseRate),
+      targetConcentration,
+      mergedPollutants: merged
+    }
+  })
+}
+
+function pickMethod(info: FilterInfo | null | undefined, layerRows: NormalizedLayerRow[]): string | null {
+  const top = info?.resultPayload?.method
+  if (typeof top === 'string' && top.trim().length > 0) return top
+  const counts = new Map<string, number>()
+  for (const row of layerRows) {
+    if (!row.method) continue
+    counts.set(row.method, (counts.get(row.method) ?? 0) + 1)
+  }
+  if (counts.size === 0) return null
+  if (counts.size > 1) return 'mixed_empirical'
+  return [...counts.keys()][0]
+}
+
+function pickEnrichmentSummary(info: FilterInfo | null | undefined): FilterEnrichmentSummary | null {
+  const summary = info?.resultPayload?.enrichmentSummary
+  if (!summary || typeof summary !== 'object') return null
+  const minerals = Array.isArray(summary.minerals)
+    ? summary.minerals.filter((value): value is string => typeof value === 'string' && value.length > 0)
+    : []
+  return {
+    enabled: typeof summary.enabled === 'boolean' ? summary.enabled : minerals.length > 0,
+    mineralCount: typeof summary.mineralCount === 'number' ? summary.mineralCount : minerals.length,
+    minerals
+  }
 }
 
 /** When top-level geometry is absent, use the first per-pollutant row for membrane labels (consistent with plan). */
@@ -207,9 +261,14 @@ export const buildFilterInfoViewModel = (info: FilterInfo | null | undefined): F
     if (pollutantSymbol === 'n/a' || layerRows.length > 1) pollutantSymbol = labels.pollutantSymbol
   }
 
+  const method = pickMethod(info, layerRows)
+  const enrichmentSummary = pickEnrichmentSummary(info)
+
   return {
     params,
     layerRows,
+    method,
+    enrichmentSummary,
     parameterBarData,
     parameterRadarData,
     parameterDonutData,
