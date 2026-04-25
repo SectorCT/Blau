@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { login } from './api/auth'
+import { createStudy, listStudies } from './api/studies'
 import { AppHeader } from './components/AppHeader'
 import { FiltersPanel } from './components/FiltersPanel'
 import { LoginForm } from './components/LoginForm'
@@ -33,7 +34,7 @@ function App() {
   const isAuthenticated = useMemo(() => Boolean(token), [token])
 
   async function loadStudies() {
-    const data = await apiRequest<Study[]>('/api/studies/')
+    const data = await listStudies()
     setStudies(data)
   }
 
@@ -84,10 +85,7 @@ function App() {
     event.preventDefault()
     setStatusMessage('Creating study...')
     try {
-      await apiRequest<Study>('/api/studies/', {
-        method: 'POST',
-        body: JSON.stringify({ name: newStudyName, description: newStudyDescription }),
-      })
+      await createStudy(newStudyName, newStudyDescription)
       setNewStudyName('')
       setNewStudyDescription('')
       await loadStudies()
