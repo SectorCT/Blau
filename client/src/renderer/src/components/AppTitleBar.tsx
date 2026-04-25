@@ -7,6 +7,7 @@ import { getFilters, getMeasurements, getStudies } from '@renderer/utils/api/end
 import type { FilterListItem, MeasurementListItem, Study } from '@renderer/utils/api/types'
 
 type SearchKind = 'filter' | 'measurement' | 'study' | 'contaminant'
+type ThemeName = 'default' | 'ocean' | 'sky'
 type SearchResult = {
   id: string
   title: string
@@ -35,7 +36,16 @@ function scoreText(query: string, candidate: string): number {
 
 export function AppTitleBar(): React.JSX.Element {
   const navigate = useNavigate()
-  const [dark, setDark] = useState(false)
+  const [dark, setDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem('blau-theme-dark') === '1'
+  })
+  const [theme, setTheme] = useState<ThemeName>(() => {
+    if (typeof window === 'undefined') return 'default'
+    const saved = window.localStorage.getItem('blau-theme-name')
+    if (saved === 'ocean' || saved === 'sky' || saved === 'default') return saved
+    return 'default'
+  })
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -63,7 +73,21 @@ export function AppTitleBar(): React.JSX.Element {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('blau-theme-dark', dark ? '1' : '0')
+    }
   }, [dark])
+
+  useEffect(() => {
+    if (theme === 'default') {
+      document.documentElement.removeAttribute('data-theme')
+    } else {
+      document.documentElement.setAttribute('data-theme', theme)
+    }
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('blau-theme-name', theme)
+    }
+  }, [theme])
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent): void => {
@@ -242,6 +266,15 @@ export function AppTitleBar(): React.JSX.Element {
           <MenuItem onClick={() => window.api.window.close()}>Exit</MenuItem>
         </Menu>
         <Menu title="View">
+          <MenuItem onClick={() => setTheme('default')}>
+            Theme: Classic Sand {theme === 'default' ? '✓' : ''}
+          </MenuItem>
+          <MenuItem onClick={() => setTheme('ocean')}>
+            Theme: Ocean Mist {theme === 'ocean' ? '✓' : ''}
+          </MenuItem>
+          <MenuItem onClick={() => setTheme('sky')}>
+            Theme: Sky Blue {theme === 'sky' ? '✓' : ''}
+          </MenuItem>
           <MenuItem
             onClick={() => {
               setDark((prev) => !prev)

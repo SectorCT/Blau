@@ -40,6 +40,42 @@
     --table-row-hover: 40 15% 95%;
   }
 
+  :root[data-theme='ocean'] {
+    --background: 200 45% 96%;
+    --card: 202 48% 94%;
+    --popover: 200 45% 96%;
+    --secondary: 201 40% 89%;
+    --muted: 200 35% 91%;
+    --accent: 198 46% 84%;
+    --border: 203 30% 82%;
+    --input: 203 30% 82%;
+    --ring: 204 42% 34%;
+    --sidebar-background: 202 45% 93%;
+    --sidebar-accent: 202 35% 87%;
+    --sidebar-border: 203 30% 82%;
+    --surface-elevated: 197 50% 98%;
+    --table-header: 201 35% 90%;
+    --table-row-hover: 201 35% 93%;
+  }
+
+  :root[data-theme='sky'] {
+    --background: 210 60% 97%;
+    --card: 210 52% 95%;
+    --popover: 210 60% 97%;
+    --secondary: 210 50% 91%;
+    --muted: 210 40% 93%;
+    --accent: 211 65% 88%;
+    --border: 212 35% 84%;
+    --input: 212 35% 84%;
+    --ring: 212 45% 36%;
+    --sidebar-background: 210 52% 94%;
+    --sidebar-accent: 210 44% 89%;
+    --sidebar-border: 212 35% 84%;
+    --surface-elevated: 210 70% 99%;
+    --table-header: 210 40% 91%;
+    --table-row-hover: 210 42% 94%;
+  }
+
   .dark {
     --background: 220 10% 12%;
     --foreground: 40 15% 95%;
