@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { login } from './api/auth'
 import { AppHeader } from './components/AppHeader'
 import { FiltersPanel } from './components/FiltersPanel'
 import { LoginForm } from './components/LoginForm'
@@ -61,10 +62,7 @@ function App() {
     event.preventDefault()
     setStatusMessage('Signing in...')
     try {
-      const data = await apiRequest<{ access: string }>('/api/auth/token/', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      })
+      const data = await login(email, password)
       localStorage.setItem(TOKEN_KEY, data.access)
       setToken(data.access)
       setStatusMessage('Logged in successfully')
