@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { AppHeader } from './components/AppHeader'
 import { LoginForm } from './components/LoginForm'
 import { StatusBanner } from './components/StatusBanner'
+import { StudiesPanel } from './components/StudiesPanel'
 import { TOKEN_KEY } from './lib/config'
 import { apiRequest } from './lib/http'
 import type { Filter, Measurement, Study } from './types'
@@ -155,28 +156,14 @@ function App() {
         />
       ) : (
         <div className="layout">
-          <section className="card">
-            <h2>Studies</h2>
-            <form onSubmit={onCreateStudy} className="grid">
-              <label>
-                Name
-                <input value={newStudyName} onChange={(event) => setNewStudyName(event.target.value)} required />
-              </label>
-              <label>
-                Description
-                <input value={newStudyDescription} onChange={(event) => setNewStudyDescription(event.target.value)} />
-              </label>
-              <button type="submit">Create Study</button>
-            </form>
-            <ul>
-              {studies.map((study) => (
-                <li key={study.id}>
-                  <strong>{study.name}</strong>
-                  <span>{study.description || 'No description'}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <StudiesPanel
+            studies={studies}
+            newStudyName={newStudyName}
+            newStudyDescription={newStudyDescription}
+            onStudyNameChange={setNewStudyName}
+            onStudyDescriptionChange={setNewStudyDescription}
+            onSubmit={onCreateStudy}
+          />
 
           <section className="card">
             <h2>Measurements</h2>
