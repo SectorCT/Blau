@@ -1,4 +1,4 @@
 temp/
-frontend/node_modules/
-frontend/dist/
-frontend/.env
+client/node_modules/
+client/dist/
+client/.env
