@@ -99,3 +99,9 @@ li {
   margin: 0 0 1rem;
   color: #2563eb;
 }
+
+.empty-state {
+  margin: 0.5rem 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}

@@ -44,16 +44,20 @@ export function MeasurementsPanel({
           Create Measurement
         </button>
       </form>
-      <ul>
-        {measurements.map((measurement) => (
-          <li key={measurement.id}>
-            <strong>{measurement.location_name || 'Unknown location'}</strong>
-            <span>
-              pH {measurement.ph ?? '-'} | Temp {measurement.temperature ?? '-'} C
-            </span>
-          </li>
-        ))}
-      </ul>
+      {measurements.length === 0 ? (
+        <p className="empty-state">No measurements yet.</p>
+      ) : (
+        <ul>
+          {measurements.map((measurement) => (
+            <li key={measurement.id}>
+              <strong>{measurement.location_name || 'Unknown location'}</strong>
+              <span>
+                pH {measurement.ph ?? '-'} | Temp {measurement.temperature ?? '-'} C
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }

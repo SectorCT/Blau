@@ -36,14 +36,18 @@ export function StudiesPanel({
           Create Study
         </button>
       </form>
-      <ul>
-        {studies.map((study) => (
-          <li key={study.id}>
-            <strong>{study.name}</strong>
-            <span>{study.description || 'No description'}</span>
-          </li>
-        ))}
-      </ul>
+      {studies.length === 0 ? (
+        <p className="empty-state">No studies yet.</p>
+      ) : (
+        <ul>
+          {studies.map((study) => (
+            <li key={study.id}>
+              <strong>{study.name}</strong>
+              <span>{study.description || 'No description'}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }

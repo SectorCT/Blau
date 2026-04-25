@@ -54,14 +54,18 @@ export function FiltersPanel({
           Generate Filter
         </button>
       </form>
-      <ul>
-        {filters.map((filterItem) => (
-          <li key={filterItem.id}>
-            <strong>{filterItem.id}</strong>
-            <span>Status: {filterItem.status || 'unknown'}</span>
-          </li>
-        ))}
-      </ul>
+      {filters.length === 0 ? (
+        <p className="empty-state">No generated filters yet.</p>
+      ) : (
+        <ul>
+          {filters.map((filterItem) => (
+            <li key={filterItem.id}>
+              <strong>{filterItem.id}</strong>
+              <span>Status: {filterItem.status || 'unknown'}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }
