@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { login } from './api/auth'
+import { createMeasurement, listMeasurements } from './api/measurements'
 import { createStudy, listStudies } from './api/studies'
 import { AppHeader } from './components/AppHeader'
 import { FiltersPanel } from './components/FiltersPanel'
@@ -39,7 +40,7 @@ function App() {
   }
 
   async function loadMeasurements() {
-    const data = await apiRequest<Measurement[]>('/api/measurements/')
+    const data = await listMeasurements()
     setMeasurements(data)
   }
 
@@ -99,13 +100,10 @@ function App() {
     event.preventDefault()
     setStatusMessage('Creating measurement...')
     try {
-      await apiRequest<Measurement>('/api/measurements/', {
-        method: 'POST',
-        body: JSON.stringify({
-          location_name: newLocationName,
-          ph: Number(newPh),
-          temperature: Number(newTemperature),
-        }),
+      await createMeasurement({
+        location_name: newLocationName,
+        ph: Number(newPh),
+        temperature: Number(newTemperature),
       })
       setNewLocationName('')
       await loadMeasurements()
