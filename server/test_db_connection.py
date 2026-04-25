@@ -61,7 +61,7 @@ def run_migrations():
         return False
 
 if __name__ == "__main__":
-    print("🧪 Testing The Great Filter Database Connection")
+    print("🧪 Testing Blau Database Connection")
     print("=" * 50)
     
     # Test connection

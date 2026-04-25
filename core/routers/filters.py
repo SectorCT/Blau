@@ -1150,7 +1150,7 @@ def _build_sdf(info: dict, filter_id: str) -> str:
     lines = [
         # Header block (3 lines)
         f"filter_{filter_id[:8]}",
-        "  TheGreatFilter",
+        "  Blau",
         (
             f" material={info.get('materialType','')} "
             f"pollutant={info.get('pollutantSymbol','')} "

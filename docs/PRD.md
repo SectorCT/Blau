@@ -1,4 +1,4 @@
-# Qlean PRD
+# Blau PRD
 
 ## Hack TUES 2026
 
@@ -8,7 +8,7 @@
 **Document Scope:** Product features and expected user experience (high-level only)
 
 ## 1. Product Vision
-Qlean is a desktop application that helps users work with water quality data and generate custom filtration designs from selected measurements.  
+Blau is a desktop application that helps users work with water quality data and generate custom filtration designs from selected measurements.  
 The product focuses on a clear user flow:
 - access the app securely
 - collect or select water measurements

@@ -171,4 +171,4 @@ CORE_SERVICE_URL = os.getenv("CORE_SERVICE_URL", "http://core:8000")
 
 # Public desktop artifacts served by backend download routes (defaults match /var/www/downloads).
 LINUX_APPIMAGE_PATH = os.getenv("LINUX_APPIMAGE_PATH", "/var/www/downloads/client-latest.AppImage")
-WINDOWS_SETUP_PATH = os.getenv("WINDOWS_SETUP_PATH", "/var/www/downloads/qlean-setup.exe")
+WINDOWS_SETUP_PATH = os.getenv("WINDOWS_SETUP_PATH", "/var/www/downloads/blau-setup.exe")

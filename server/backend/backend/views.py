@@ -1,5 +1,5 @@
 """
-Health check and utility views for The Great Filter backend.
+Health check and utility views for Blau backend.
 """
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -127,18 +127,18 @@ def windows_setup_download_view(request):
     """Serve the Windows NSIS installer (same pattern as Linux AppImage)."""
     setup_path = _resolve_public_download_file(
         env_path_setting='WINDOWS_SETUP_PATH',
-        filename='qlean-setup.exe',
+        filename='blau-setup.exe',
     )
     if setup_path is None:
         return HttpResponse(
-            'Windows installer not found. Put qlean-setup.exe in /var/www/downloads/ '
+            'Windows installer not found. Put blau-setup.exe in /var/www/downloads/ '
             'or server/backend/static/downloads/ (see README).',
             status=404,
         )
 
     file_size = setup_path.stat().st_size
     file_handle = open(setup_path, 'rb')
-    response = FileResponse(file_handle, as_attachment=True, filename='qlean-setup.exe')
+    response = FileResponse(file_handle, as_attachment=True, filename='blau-setup.exe')
     response['Content-Type'] = 'application/octet-stream'
     response['Content-Length'] = str(file_size)
     response['Cache-Control'] = 'no-store, max-age=0'

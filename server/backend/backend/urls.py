@@ -1,5 +1,5 @@
 """
-URL configuration for The Great Filter backend.
+URL configuration for Blau backend.
 
 Main URL routing for the API and frontend.
 """
@@ -16,7 +16,7 @@ urlpatterns = [
     path('api/', include('filters.urls')),
     path('admin/', admin.site.urls),
     path('downloads/client-latest.AppImage', linux_appimage_download_view, name='linux_appimage_download'),
-    path('downloads/qlean-setup.exe', windows_setup_download_view, name='windows_setup_download'),
+    path('downloads/blau-setup.exe', windows_setup_download_view, name='windows_setup_download'),
 
     # Frontend Routes - Serve SPA for all non-API routes
     re_path(r'^(?!api/).*$', frontend_view, name='frontend'),

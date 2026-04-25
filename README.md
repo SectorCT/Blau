@@ -1,4 +1,4 @@
-# Qlean 
+# Blau 
 
 Desktop and web tooling for water-quality measurements, studies, and AI-driven nano-filter design. The system uses **quantum chemistry simulation** (Hartree-Fock and Variational Quantum Eigensolver) combined with **genetic algorithm optimization** to generate filter designs that maximize pollutant-binding energy for measured water conditions.
 
@@ -148,7 +148,7 @@ mkdir -p ../server/backend/static/client/dist
 cp -r out/renderer/* ../server/backend/static/client/dist/
 ```
 
-On the server (paths match `/home/app/backend` in Docker), the same copy targets `/home/app/backend/static/client/dist/`. Public installers can live under `/var/www/downloads/`; Django exposes `GET /downloads/client-latest.AppImage` and `GET /downloads/qlean-setup.exe` (override paths with `LINUX_APPIMAGE_PATH` / `WINDOWS_SETUP_PATH` in `.env`).
+On the server (paths match `/home/app/backend` in Docker), the same copy targets `/home/app/backend/static/client/dist/`. Public installers can live under `/var/www/downloads/`; Django exposes `GET /downloads/client-latest.AppImage` and `GET /downloads/blau-setup.exe` (override paths with `LINUX_APPIMAGE_PATH` / `WINDOWS_SETUP_PATH` in `.env`).
 
 ### Key client features
 

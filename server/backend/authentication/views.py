@@ -121,10 +121,10 @@ class PasswordResetRequestView(APIView):
             
             try:
                 send_mail(
-                    'Password Reset Code - The Great Filter',
+                    'Password Reset Code - Blau',
                     f'''Hello {user.username},
 
-You requested a password reset for your The Great Filter account.
+You requested a password reset for your Blau account.
 
 Your password reset code is: {reset_code}
 
@@ -133,7 +133,7 @@ Enter this 6-digit code in the password reset form. This code will expire in 1 h
 If you did not request this password reset, please ignore this email.
 
 Best regards,
-The Great Filter Team''',
+Blau Team''',
                     settings.DEFAULT_FROM_EMAIL,
                     [email],
                     fail_silently=False,
