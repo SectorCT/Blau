@@ -6,6 +6,7 @@ type LoginFormProps = {
   onEmailChange: (value: string) => void
   onPasswordChange: (value: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  isLoading?: boolean
 }
 
 export function LoginForm({
@@ -14,6 +15,7 @@ export function LoginForm({
   onEmailChange,
   onPasswordChange,
   onSubmit,
+  isLoading,
 }: LoginFormProps) {
   return (
     <section className="card">
@@ -21,13 +23,15 @@ export function LoginForm({
       <form onSubmit={onSubmit} className="grid">
         <label>
           Email
-          <input value={email} onChange={(event) => onEmailChange(event.target.value)} type="email" required />
+          <input value={email} onChange={(event) => onEmailChange(event.target.value)} type="email" required disabled={isLoading} />
         </label>
         <label>
           Password
-          <input value={password} onChange={(event) => onPasswordChange(event.target.value)} type="password" required />
+          <input value={password} onChange={(event) => onPasswordChange(event.target.value)} type="password" required disabled={isLoading} />
         </label>
-        <button type="submit">Sign In</button>
+        <button type="submit" disabled={isLoading}>
+          Sign In
+        </button>
       </form>
     </section>
   )

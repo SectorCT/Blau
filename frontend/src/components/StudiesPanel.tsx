@@ -8,6 +8,7 @@ type StudiesPanelProps = {
   onStudyNameChange: (value: string) => void
   onStudyDescriptionChange: (value: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  isLoading?: boolean
 }
 
 export function StudiesPanel({
@@ -17,6 +18,7 @@ export function StudiesPanel({
   onStudyNameChange,
   onStudyDescriptionChange,
   onSubmit,
+  isLoading,
 }: StudiesPanelProps) {
   return (
     <section className="card">
@@ -24,13 +26,15 @@ export function StudiesPanel({
       <form onSubmit={onSubmit} className="grid">
         <label>
           Name
-          <input value={newStudyName} onChange={(event) => onStudyNameChange(event.target.value)} required />
+          <input value={newStudyName} onChange={(event) => onStudyNameChange(event.target.value)} required disabled={isLoading} />
         </label>
         <label>
           Description
-          <input value={newStudyDescription} onChange={(event) => onStudyDescriptionChange(event.target.value)} />
+          <input value={newStudyDescription} onChange={(event) => onStudyDescriptionChange(event.target.value)} disabled={isLoading} />
         </label>
-        <button type="submit">Create Study</button>
+        <button type="submit" disabled={isLoading}>
+          Create Study
+        </button>
       </form>
       <ul>
         {studies.map((study) => (

@@ -10,6 +10,7 @@ type MeasurementsPanelProps = {
   onPhChange: (value: string) => void
   onTemperatureChange: (value: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  isLoading?: boolean
 }
 
 export function MeasurementsPanel({
@@ -21,6 +22,7 @@ export function MeasurementsPanel({
   onPhChange,
   onTemperatureChange,
   onSubmit,
+  isLoading,
 }: MeasurementsPanelProps) {
   return (
     <section className="card">
@@ -28,17 +30,19 @@ export function MeasurementsPanel({
       <form onSubmit={onSubmit} className="grid">
         <label>
           Location Name
-          <input value={newLocationName} onChange={(event) => onLocationNameChange(event.target.value)} required />
+          <input value={newLocationName} onChange={(event) => onLocationNameChange(event.target.value)} required disabled={isLoading} />
         </label>
         <label>
           pH
-          <input value={newPh} onChange={(event) => onPhChange(event.target.value)} type="number" step="0.1" />
+          <input value={newPh} onChange={(event) => onPhChange(event.target.value)} type="number" step="0.1" disabled={isLoading} />
         </label>
         <label>
           Temperature
-          <input value={newTemperature} onChange={(event) => onTemperatureChange(event.target.value)} type="number" step="0.1" />
+          <input value={newTemperature} onChange={(event) => onTemperatureChange(event.target.value)} type="number" step="0.1" disabled={isLoading} />
         </label>
-        <button type="submit">Create Measurement</button>
+        <button type="submit" disabled={isLoading}>
+          Create Measurement
+        </button>
       </form>
       <ul>
         {measurements.map((measurement) => (

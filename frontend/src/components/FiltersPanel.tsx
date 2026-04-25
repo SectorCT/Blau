@@ -10,6 +10,7 @@ type FiltersPanelProps = {
   onMeasurementChange: (value: string) => void
   onStudyChange: (value: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  isLoading?: boolean
 }
 
 export function FiltersPanel({
@@ -21,6 +22,7 @@ export function FiltersPanel({
   onMeasurementChange,
   onStudyChange,
   onSubmit,
+  isLoading,
 }: FiltersPanelProps) {
   return (
     <section className="card">
@@ -28,7 +30,7 @@ export function FiltersPanel({
       <form onSubmit={onSubmit} className="grid">
         <label>
           Measurement
-          <select value={selectedMeasurementId} onChange={(event) => onMeasurementChange(event.target.value)} required>
+          <select value={selectedMeasurementId} onChange={(event) => onMeasurementChange(event.target.value)} required disabled={isLoading}>
             <option value="">Choose measurement</option>
             {measurements.map((measurement) => (
               <option key={measurement.id} value={measurement.id}>
@@ -39,7 +41,7 @@ export function FiltersPanel({
         </label>
         <label>
           Study (optional)
-          <select value={selectedStudyId} onChange={(event) => onStudyChange(event.target.value)}>
+          <select value={selectedStudyId} onChange={(event) => onStudyChange(event.target.value)} disabled={isLoading}>
             <option value="">No study</option>
             {studies.map((study) => (
               <option key={study.id} value={study.id}>
@@ -48,7 +50,9 @@ export function FiltersPanel({
             ))}
           </select>
         </label>
-        <button type="submit">Generate Filter</button>
+        <button type="submit" disabled={isLoading}>
+          Generate Filter
+        </button>
       </form>
       <ul>
         {filters.map((filterItem) => (

@@ -163,6 +163,7 @@ function App() {
           onEmailChange={setEmail}
           onPasswordChange={setPassword}
           onSubmit={onLogin}
+          isLoading={isLoading}
         />
       ) : (
         <div className="layout">
@@ -173,6 +174,7 @@ function App() {
             onStudyNameChange={setNewStudyName}
             onStudyDescriptionChange={setNewStudyDescription}
             onSubmit={onCreateStudy}
+            isLoading={isLoading}
           />
 
           <MeasurementsPanel
@@ -184,6 +186,7 @@ function App() {
             onPhChange={setNewPh}
             onTemperatureChange={setNewTemperature}
             onSubmit={onCreateMeasurement}
+            isLoading={isLoading}
           />
 
           <FiltersPanel
@@ -195,6 +198,7 @@ function App() {
             onMeasurementChange={setSelectedMeasurementId}
             onStudyChange={setSelectedStudyId}
             onSubmit={onGenerateFilter}
+            isLoading={isLoading}
           />
         </div>
       )}
