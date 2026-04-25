@@ -32,6 +32,13 @@ class GeneratedFilterListSerializer(serializers.ModelSerializer):
         ]
 
 
+class EnrichmentConfigSerializer(serializers.Serializer):
+    enabled = serializers.BooleanField(required=False, default=False)
+    minerals = serializers.ListField(
+        child=serializers.CharField(), required=False, default=list,
+    )
+
+
 class GenerateFilterSerializer(serializers.Serializer):
     studyId = serializers.UUIDField()
     measurementId = serializers.UUIDField()
@@ -39,6 +46,7 @@ class GenerateFilterSerializer(serializers.Serializer):
     targetParameterCodes = serializers.ListField(
         child=serializers.CharField(), required=False, default=list,
     )
+    enrichment = EnrichmentConfigSerializer(required=False, default=dict)
 
     def validate(self, attrs):
         request = self.context["request"]
@@ -62,6 +70,11 @@ class GenerateFilterSerializer(serializers.Serializer):
         attrs["measurement"] = measurement
         attrs["use_quantum_computer"] = attrs.get("useQuantumComputer", False)
         attrs["target_parameter_codes"] = attrs.get("targetParameterCodes", [])
+        enrichment_raw = attrs.get("enrichment") or {}
+        attrs["enrichment"] = {
+            "enabled": bool(enrichment_raw.get("enabled", False)),
+            "minerals": list(enrichment_raw.get("minerals", [])),
+        }
         return attrs
 
     def create(self, validated_data):
@@ -77,6 +90,7 @@ class GenerateFilterSerializer(serializers.Serializer):
                 "measurementId": str(validated_data["measurement"].id),
                 "useQuantumComputer": bool(validated_data.get("use_quantum_computer", False)),
                 "targetParameterCodes": validated_data.get("target_parameter_codes", []),
+                "enrichment": validated_data.get("enrichment", {"enabled": False, "minerals": []}),
             },
         )
         return generated_filter

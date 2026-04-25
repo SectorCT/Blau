@@ -53,6 +53,7 @@ def run_filter_generation(generated_filter) -> dict:
     experiment = generated_filter.experiment_payload or {}
     use_quantum_computer = bool(experiment.get("useQuantumComputer", False))
     target_codes = experiment.get("targetParameterCodes", [])
+    enrichment = experiment.get("enrichment", {"enabled": False, "minerals": []})
 
     # ── 1. Submit generation request ──────────────────────────────────────
     payload = {
@@ -61,6 +62,7 @@ def run_filter_generation(generated_filter) -> dict:
         "ph": measurement.ph if measurement.ph is not None else 7.0,
         "params": _build_params(measurement, target_codes),
         "useQuantumComputer": use_quantum_computer,
+        "enrichment": enrichment,
     }
 
     try:
@@ -135,6 +137,9 @@ def run_filter_generation(generated_filter) -> dict:
             "bindingEnergy": l.get("bindingEnergy"),
             "removalEfficiency": l.get("removalEfficiency"),
             "method": l.get("method"),
+            "mode": l.get("mode", "filtration"),
+            "releaseRate": l.get("releaseRate"),
+            "targetConcentration": l.get("targetConcentration"),
         }
         for l in layers
     ]
@@ -177,14 +182,18 @@ def run_filter_generation(generated_filter) -> dict:
             "usedQuantumComputer": used_quantum_computer,
             "method": info.get("method"),
             "layers": layer_summaries,
+            "enrichmentSummary": info.get("enrichmentSummary", {}),
         },
         "summary_metrics": {
             "parameter_count": measurement.parameter_count,
             "layer_count": len(layers),
+            "filtration_layer_count": sum(1 for l in layers if l.get("mode", "filtration") == "filtration"),
+            "enrichment_layer_count": sum(1 for l in layers if l.get("mode") == "enrichment"),
             "removalEfficiency": info.get("removalEfficiency"),
             "bindingEnergy": info.get("bindingEnergy"),
             "materialType": info.get("materialType"),
             "usedQuantumComputer": used_quantum_computer,
+            "enrichmentEnabled": bool(info.get("enrichmentSummary", {}).get("enabled", False)),
         },
         "export_payload": {
             "format": "csv",
