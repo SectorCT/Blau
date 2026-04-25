@@ -40,6 +40,7 @@ type ModelAtom = {
   bonds: number[]
   bondOrder: number[]
 }
+type VisualizationMode = 'molecular' | 'physical'
 
 const BASE_ELEMENTS = ['C', 'N', 'O', 'S', 'H'] as const
 const BASE_STYLE = { stick: { radius: 0.06 }, sphere: { scale: 0.15 } }
@@ -91,6 +92,10 @@ function downsampleXyz(xyz: string, maxAtoms: number): string {
   return `${sampled.length}\n${headerLine} (downsampled)\n${sampled.join('\n')}`
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
 export function FilterVisualization(): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
@@ -104,6 +109,7 @@ export function FilterVisualization(): React.JSX.Element {
   const [filterInfo, setFilterInfo] = useState<FilterInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadedFromName, setLoadedFromName] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<VisualizationMode>('molecular')
 
   useEffect(() => {
     let cancelled = false
@@ -231,6 +237,37 @@ export function FilterVisualization(): React.JSX.Element {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
   }, [vm.atomPositions])
+  const physicalNodes = useMemo(() => {
+    if (vm.atomPositions.length === 0) return []
+    const sampleSize = Math.min(220, vm.atomPositions.length)
+    const step = Math.max(1, Math.floor(vm.atomPositions.length / sampleSize))
+    const sampled = vm.atomPositions.filter((_, index) => index % step === 0).slice(0, sampleSize)
+    const xs = sampled.map((atom) => atom.x)
+    const ys = sampled.map((atom) => atom.y)
+    const minX = Math.min(...xs)
+    const maxX = Math.max(...xs)
+    const minY = Math.min(...ys)
+    const maxY = Math.max(...ys)
+    const xRange = Math.max(0.0001, maxX - minX)
+    const yRange = Math.max(0.0001, maxY - minY)
+
+    return sampled.map((atom, index) => {
+      const normalizedX = (atom.x - minX) / xRange
+      const normalizedY = (atom.y - minY) / yRange
+      const jitter = ((index % 6) - 3) * 0.003
+      return {
+        id: atom.id,
+        element: atom.element,
+        cx: clamp(0.06 + normalizedX * 0.88 + jitter, 0.04, 0.96),
+        cy: clamp(0.14 + normalizedY * 0.72, 0.1, 0.9),
+        r: atom.element === 'C' ? 2.6 : atom.element === 'O' ? 2.2 : 2.0
+      }
+    })
+  }, [vm.atomPositions])
+  const poreBandHeight = useMemo(() => {
+    const pore = vm.metrics.poreSize ?? 1.2
+    return clamp(0.08 + pore / 22, 0.08, 0.22)
+  }, [vm.metrics.poreSize])
 
   const resetSelection = (): void => {
     setSelectedAtom(null)
@@ -244,6 +281,11 @@ export function FilterVisualization(): React.JSX.Element {
   }
 
   useEffect(() => {
+    if (viewMode !== 'molecular') {
+      viewerRef.current?.clear()
+      viewerRef.current = null
+      return
+    }
     if (loading) return
     if (!containerRef.current) return
 
@@ -330,7 +372,7 @@ export function FilterVisualization(): React.JSX.Element {
       viewer.clear()
       viewerRef.current = null
     }
-  }, [xyz, loading, atomCount, modelAtoms])
+  }, [xyz, loading, atomCount, modelAtoms, viewMode])
 
   const handleViewerClick = (): void => {
     if (!selectedAtom) return
@@ -381,11 +423,52 @@ export function FilterVisualization(): React.JSX.Element {
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="flex min-h-0 flex-col gap-4 overflow-hidden">
           <div className="relative min-h-0 flex-1 overflow-hidden rounded-[8px] bg-black">
-            <div ref={containerRef} className="absolute inset-0" onClick={handleViewerClick} />
+            {viewMode === 'molecular' ? (
+              <div ref={containerRef} className="absolute inset-0" onClick={handleViewerClick} />
+            ) : (
+              <div className="absolute inset-0 flex flex-col bg-slate-950 text-slate-100">
+                <div className="border-b border-slate-800 px-4 py-3 text-xs text-slate-300">
+                  Contaminated water input
+                </div>
+                <div className="relative h-[12%] overflow-hidden border-b border-cyan-900/50 bg-cyan-500/15">
+                  <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-cyan-300/30" />
+                </div>
+                <div className="relative h-[48%] overflow-hidden border-y border-slate-700 bg-slate-800/90">
+                  {physicalNodes.map((node) => (
+                    <span
+                      key={`physical-node-${node.id}`}
+                      className="absolute block rounded-full"
+                      style={{
+                        left: `${node.cx * 100}%`,
+                        top: `${node.cy * 100 - 18}%`,
+                        width: `${node.r * 2}px`,
+                        height: `${node.r * 2}px`,
+                        backgroundColor:
+                          node.element === 'C' ? '#475569' : node.element === 'O' ? '#ef4444' : '#e2e8f0',
+                        boxShadow: '0 0 0.5px rgba(255,255,255,0.6)'
+                      }}
+                    />
+                  ))}
+                  <div
+                    className="absolute inset-x-2 bg-cyan-300/20"
+                    style={{
+                      top: `${50 - poreBandHeight * 50}%`,
+                      height: `${poreBandHeight * 100}%`
+                    }}
+                  />
+                  <div className="absolute left-3 top-2 rounded bg-slate-900/70 px-2 py-1 text-[11px] text-slate-300">
+                    Membrane body
+                  </div>
+                </div>
+                <div className="flex h-[28%] items-center justify-center border-t border-emerald-900/50 bg-emerald-500/10 text-sm text-emerald-200">
+                  Filtered output
+                </div>
+              </div>
+            )}
           </div>
           <div className="h-36 shrink-0 overflow-y-auto rounded-[8px] border border-border bg-card p-4">
             <h2 className="mb-2 text-sm font-semibold">Structure Description</h2>
-            {selectedAtom ? (
+            {viewMode === 'molecular' && selectedAtom ? (
               <div className="space-y-1 text-sm text-muted-foreground">
                 <p>
                   Selected atom: <span className="font-medium text-foreground">{selectedAtom.element}</span> #
@@ -404,7 +487,7 @@ export function FilterVisualization(): React.JSX.Element {
                   </span>
                 </p>
               </div>
-            ) : (
+            ) : viewMode === 'molecular' ? (
               <div className="space-y-1 text-sm text-muted-foreground">
                 <p>
                   {usingRealStructure
@@ -426,12 +509,50 @@ export function FilterVisualization(): React.JSX.Element {
                 </p>
                 <p>Click an atom to inspect it. Click empty space to return to this summary.</p>
               </div>
+            ) : (
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <p>
+                  Physical mode turns the molecular coordinates into a membrane cross-section: darker particles indicate
+                  the solid matrix, and the blue channel illustrates the effective pore corridor.
+                </p>
+                <p>
+                  This helps connect nanoscale structure with a real-world filter shape (water inlet, membrane body, and
+                  filtered outlet).
+                </p>
+                <p>Use the switch in the legend panel to return to atom-level molecular inspection.</p>
+              </div>
             )}
           </div>
         </section>
 
         <aside className="min-h-0 overflow-y-auto rounded-[8px] border border-border bg-card p-4">
-          <h2 className="mb-3 text-sm font-semibold">Legend</h2>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Legend</h2>
+            <div className="inline-flex rounded-[6px] border border-border bg-background p-0.5 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setViewMode('molecular')}
+                className={`rounded-[4px] px-2 py-1 transition-colors ${
+                  viewMode === 'molecular'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                Molecular
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('physical')}
+                className={`rounded-[4px] px-2 py-1 transition-colors ${
+                  viewMode === 'physical'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                Physical
+              </button>
+            </div>
+          </div>
           <div className="space-y-2 text-sm">
             {elementCounts.length > 0 ? (
               elementCounts.map(([element]) => (
