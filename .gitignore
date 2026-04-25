@@ -14,3 +14,15 @@ node_modules/
 # Large desktop installers (keep on server; do not commit)
 server/backend/static/downloads/*
 !server/backend/static/downloads/.gitkeep
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Arduino IDE build artefacts
+firmware/**/build/
+*.elf
+*.hex
+*.bin
