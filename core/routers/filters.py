@@ -183,10 +183,11 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
         pollutants = identify_all_pollutants(params)
         log.info("[%s] Identified %d pollutant(s): %s",
                  filter_id[:8], len(pollutants),
-                 [(s, d) for s, _, d, _ in pollutants])
+                 [(s, d) for s, _, d, _, _ in pollutants])
 
         execution_target = "ibm_quantum" if use_quantum_computer else "simulator"
         from services.genetic_optimizer import optimize_filter, optimize_enrichment_layer
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
         layers = []
         all_atoms: list[dict] = []
@@ -194,29 +195,34 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
         z_offset = 0.0
         _INTERLAYER_GAP = 3.4  # van der Waals interlayer spacing, Å
 
-        # ── Filtration layers (one per pollutant) ─────────────────────────
-        for layer_idx, (p_symbol, p_charge, p_desc, p_value) in enumerate(pollutants):
-            log.info("[%s] Filtration layer %d/%d: optimizing for %s (%s)",
-                     filter_id[:8], layer_idx + 1, len(pollutants), p_symbol, p_desc)
+        # ── Filtration GA — run all pollutant optimizations in parallel ───
+        log.info("[%s] Running %d filtration GA(s) in parallel", filter_id[:8], len(pollutants))
+        filtration_results: dict[int, dict] = {}
+        with ThreadPoolExecutor(max_workers=min(len(pollutants), 8)) as tpe:
+            futures = {
+                tpe.submit(
+                    optimize_filter,
+                    pollutant_symbol=p_symbol,
+                    pollutant_charge=p_charge,
+                    temperature=temperature,
+                    ph=ph,
+                    use_quantum_computer=use_quantum_computer,
+                ): idx
+                for idx, (p_symbol, p_charge, _, _, _) in enumerate(pollutants)
+            }
+            for fut in as_completed(futures):
+                idx = futures[fut]
+                filtration_results[idx] = fut.result()
 
-            result = optimize_filter(
-                pollutant_symbol=p_symbol,
-                pollutant_charge=p_charge,
-                temperature=temperature,
-                ph=ph,
-                use_quantum_computer=use_quantum_computer,
-            )
-            log.info("[%s] Layer %d GA complete — pore=%.4f nm, thickness=%.4f nm, "
-                     "binding=%.6f eV, efficiency=%.2f%%, method=%s",
-                     filter_id[:8], layer_idx + 1,
-                     result["pore_size"], result["layer_thickness"],
-                     result["binding_energy"], result["removal_efficiency"],
-                     result["method"])
+        # ── Build filtration layers sequentially (z_offset accumulation) ──
+        for layer_idx, (p_symbol, p_charge, p_desc, p_value, p_merged) in enumerate(pollutants):
+            result = filtration_results[layer_idx]
+            log.info("[%s] Layer %d/%d — pore=%.4fnm binding=%.4feV eff=%.1f%% method=%s",
+                     filter_id[:8], layer_idx + 1, len(pollutants),
+                     result["pore_size"], result["binding_energy"],
+                     result["removal_efficiency"], result["method"])
 
             func_density = result.get("functionalization_density", 0.6)
-            # Hydrophobic microplastics (C-backbone polymers) bind better to
-            # bare graphene. Reduce functionalization to preserve surface area
-            # for van der Waals / π-π capture.
             if p_symbol.upper() in _HYDROPHOBIC_POLLUTANTS:
                 func_density = min(func_density, 0.25)
 
@@ -247,7 +253,7 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
             if atom_positions:
                 max_z = max(a["z"] for a in atom_positions)
             else:
-                max_z = result["layer_thickness"] * 10  # nm → Å
+                max_z = result["layer_thickness"] * 10
             z_offset += max_z + _INTERLAYER_GAP
 
             layers.append({
@@ -259,10 +265,11 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
                 "materialType": result["material_type"],
                 "bindingEnergy": result["binding_energy"],
                 "removalEfficiency": result["removal_efficiency"],
-                "method": result.get("method", "hf"),
+                "method": result.get("method", "ionic_empirical"),
                 "mode": "filtration",
                 "releaseRate": None,
                 "targetConcentration": None,
+                "mergedPollutants": p_merged,
                 "atomPositions": [a for a in all_atoms[id_offset:]],
                 "connections": [
                     {"from": f, "to": t, "order": o}
@@ -270,26 +277,39 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
                 ],
             })
 
-        # ── Enrichment layers (below filtration — water gets clean first) ─
+        # ── Enrichment GA — run all mineral optimizations in parallel ────
         if enrichment_enabled and enrichment_minerals:
-            log.info("[%s] Adding %d enrichment layer(s): %s",
-                     filter_id[:8], len(enrichment_minerals), enrichment_minerals)
-            for mineral_key in enrichment_minerals:
-                mineral_info = ENRICHMENT_MINERALS.get(mineral_key.lower())
-                if mineral_info is None:
-                    log.warning("[%s] Unknown mineral key %r — skipping", filter_id[:8], mineral_key)
-                    continue
+            valid_minerals = [
+                (k, ENRICHMENT_MINERALS[k.lower()])
+                for k in enrichment_minerals
+                if k.lower() in ENRICHMENT_MINERALS
+            ]
+            skipped = [k for k in enrichment_minerals if k.lower() not in ENRICHMENT_MINERALS]
+            for k in skipped:
+                log.warning("[%s] Unknown mineral key %r — skipping", filter_id[:8], k)
+
+            log.info("[%s] Running %d enrichment GA(s) in parallel", filter_id[:8], len(valid_minerals))
+            enrichment_results: dict[int, dict] = {}
+            with ThreadPoolExecutor(max_workers=min(len(valid_minerals), 8)) as tpe:
+                futures = {
+                    tpe.submit(
+                        optimize_enrichment_layer,
+                        mineral_symbol=info[0],
+                        mineral_charge=info[1],
+                        temperature=temperature,
+                        ph=ph,
+                        use_quantum_computer=use_quantum_computer,
+                    ): idx
+                    for idx, (_, info) in enumerate(valid_minerals)
+                }
+                for fut in as_completed(futures):
+                    idx = futures[fut]
+                    enrichment_results[idx] = fut.result()
+
+            for idx, (mineral_key, mineral_info) in enumerate(valid_minerals):
                 m_symbol, m_charge, m_desc, min_mg, max_mg = mineral_info
                 target_conc = f"{min_mg}-{max_mg} mg/L"
-
-                log.info("[%s] Enrichment layer: %s (%s)", filter_id[:8], m_desc, m_symbol)
-                e_result = optimize_enrichment_layer(
-                    mineral_symbol=m_symbol,
-                    mineral_charge=m_charge,
-                    temperature=temperature,
-                    ph=ph,
-                    use_quantum_computer=use_quantum_computer,
-                )
+                e_result = enrichment_results[idx]
 
                 e_positions, e_connections = generate_atom_positions(
                     lattice_spacing=e_result["lattice_spacing"],
@@ -321,6 +341,9 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
                     max_z = e_result["layer_thickness"] * 10
                 z_offset += max_z + _INTERLAYER_GAP
 
+                log.info("[%s] Enrichment layer %s — binding=%.4feV release=%.1f%% method=%s",
+                         filter_id[:8], m_symbol, e_result["binding_energy"],
+                         e_result.get("release_rate", 0.0), e_result.get("method"))
                 layers.append({
                     "pollutant": m_desc,
                     "pollutantSymbol": m_symbol,
@@ -330,7 +353,7 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
                     "materialType": e_result["material_type"],
                     "bindingEnergy": e_result["binding_energy"],
                     "removalEfficiency": 0.0,
-                    "method": e_result.get("method", "hf"),
+                    "method": e_result.get("method", "ionic_empirical"),
                     "mode": "enrichment",
                     "releaseRate": e_result.get("release_rate"),
                     "targetConcentration": target_conc,
@@ -360,11 +383,16 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
         else:
             avg_binding = 0.0
 
-        # Determine overall method — if any layer used vqe_ibm, flag it
-        methods = [l["method"] for l in layers]
-        overall_method = "vqe_ibm" if "vqe_ibm" in methods else (
-            "vqe" if "vqe" in methods else "hf"
-        )
+        # Determine overall method label
+        methods = set(l["method"] for l in layers)
+        if "vqe_ibm" in methods:
+            overall_method = "vqe_ibm"
+        elif "vdw_empirical" in methods and "ionic_empirical" in methods:
+            overall_method = "mixed_empirical"
+        elif "vdw_empirical" in methods:
+            overall_method = "vdw_empirical"
+        else:
+            overall_method = "ionic_empirical"
 
         total_thickness = round(sum(l["layerThickness"] for l in layers), 4)
 
@@ -390,7 +418,7 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
             "pollutantSymbol": primary["pollutantSymbol"],
             "method": overall_method,
             "executionTarget": execution_target,
-            "usedQuantumComputer": overall_method == "vqe_ibm",
+            "usedQuantumComputer": "vqe_ibm" in methods,
             "atomPositions": all_atoms,
             "connections": stacked_connections,
             "layers": layers,

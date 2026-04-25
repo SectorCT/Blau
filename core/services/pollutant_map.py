@@ -608,14 +608,16 @@ def identify_pollutant(params: list[dict]) -> tuple[str, int, str]:
     return best_match if best_match is not None else ("Cl", -1, "Chloride ion (default)")
 
 
-def identify_all_pollutants(params: list[dict]) -> list[tuple[str, int, str, float]]:
+def identify_all_pollutants(params: list[dict]) -> list[tuple[str, int, str, float, list[str]]]:
     """Return all matched pollutants from *params*, sorted by concentration descending.
 
-    Each entry is ``(atom_symbol, charge, description, value)``.
+    Each entry is ``(atom_symbol, charge, description, value, merged_keys)``.
+    ``merged_keys`` contains every original parameter name that mapped to the
+    same atom symbol (e.g. ["pe", "ps"] when both map to C).
     If nothing matches, returns a single Cl⁻ fallback entry.
     """
-    matches: list[tuple[str, int, str, float]] = []
-    seen_symbols: set[str] = set()
+    matches: list[tuple[str, int, str, float, list[str]]] = []
+    seen_symbols: dict[str, int] = {}  # symbol → index in matches
 
     for p in params:
         name = str(p.get("name", "")).strip().lower()
@@ -623,18 +625,17 @@ def identify_all_pollutants(params: list[dict]) -> list[tuple[str, int, str, flo
 
         if name in POLLUTANT_MAP:
             symbol, charge, desc = POLLUTANT_MAP[name]
-            # Deduplicate by symbol — keep the highest concentration
             if symbol in seen_symbols:
-                matches = [
-                    (s, c, d, max(v, value) if s == symbol else v)
-                    for s, c, d, v in matches
-                ]
+                idx = seen_symbols[symbol]
+                s, c, d, v, keys = matches[idx]
+                # Keep the highest-concentration representative; record all names
+                matches[idx] = (s, c, d, max(v, value), keys + [name])
             else:
-                seen_symbols.add(symbol)
-                matches.append((symbol, charge, desc, value))
+                seen_symbols[symbol] = len(matches)
+                matches.append((symbol, charge, desc, value, [name]))
 
     if not matches:
-        return [("Cl", -1, "Chloride ion (default)", 0.0)]
+        return [("Cl", -1, "Chloride ion (default)", 0.0, [])]
 
     matches.sort(key=lambda m: m[3], reverse=True)
     return matches

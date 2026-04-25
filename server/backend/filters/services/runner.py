@@ -140,6 +140,7 @@ def run_filter_generation(generated_filter) -> dict:
             "mode": l.get("mode", "filtration"),
             "releaseRate": l.get("releaseRate"),
             "targetConcentration": l.get("targetConcentration"),
+            "mergedPollutants": l.get("mergedPollutants", []),
         }
         for l in layers
     ]
