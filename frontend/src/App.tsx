@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AppHeader } from './components/AppHeader'
+import { StatusBanner } from './components/StatusBanner'
 import { TOKEN_KEY } from './lib/config'
 import { apiRequest } from './lib/http'
 import type { Filter, Measurement, Study } from './types'
@@ -141,7 +142,7 @@ function App() {
     <main className="container">
       <AppHeader isAuthenticated={isAuthenticated} onLogout={onLogout} />
 
-      <p className="status">{statusMessage}</p>
+      <StatusBanner message={statusMessage} />
 
       {!isAuthenticated ? (
         <section className="card">
