@@ -172,6 +172,7 @@ def run_filter_generation(generated_filter) -> dict:
             "ph": measurement.ph,
             "params": _build_params(measurement, target_codes),
             "targetParameterCodes": target_codes,
+            "enrichment": enrichment,
         },
         "result_payload": {
             "bindingEnergy": info.get("bindingEnergy"),

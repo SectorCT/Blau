@@ -287,9 +287,11 @@ def optimize_enrichment_layer(
     func_density = round(max(GENE_BOUNDS[3][0], min(GENE_BOUNDS[3][1], best[3])), 4)
     doping = round(max(GENE_BOUNDS[4][0], min(GENE_BOUNDS[4][1], best[4])), 4)
 
-    # Estimate release rate via Arrhenius: rate ∝ exp(-|E| / kT)
-    kT_eV = 8.617e-5 * (temperature + 273.15)
-    release_rate_percent = round(min(100.0, math.exp(-abs(final_result["binding_energy"]) / kT_eV) * 100.0), 2)
+    # Release rate peaks at 100% when binding matches the physisorption target,
+    # and decays as binding deviates — stronger binding means the mineral
+    # stays on the membrane rather than releasing into the water.
+    deviation = abs(final_result["binding_energy"]) - abs(target_binding_ev)
+    release_rate_percent = round(100.0 * math.exp(-10.0 * deviation * deviation), 2)
 
     logger.info("Enrichment GA complete for %s — binding=%.4f eV, release_rate=%.2f%%",
                 mineral_symbol, final_result["binding_energy"], release_rate_percent)

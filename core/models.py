@@ -71,6 +71,7 @@ class FilterInfo(BaseModel):
     # "from" is a reserved keyword so stored as plain dicts, not a nested model.
     connections: list[dict[str, Any]] = []
     layers: list[LayerInfo] = []
+    enrichmentSummary: dict[str, Any] = {}
 
 
 class FilterDetails(BaseModel):
