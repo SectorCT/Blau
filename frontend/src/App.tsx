@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { AppHeader } from './components/AppHeader'
 import { TOKEN_KEY } from './lib/config'
 import { apiRequest } from './lib/http'
 import type { Filter, Measurement, Study } from './types'
@@ -138,19 +139,7 @@ function App() {
 
   return (
     <main className="container">
-      <header className="header">
-        <div>
-          <h1>Blau Frontend</h1>
-          <p>Frontend console for studies, measurements, and generated filters.</p>
-        </div>
-        <div>
-          {isAuthenticated ? (
-            <button type="button" onClick={onLogout}>
-              Logout
-            </button>
-          ) : null}
-        </div>
-      </header>
+      <AppHeader isAuthenticated={isAuthenticated} onLogout={onLogout} />
 
       <p className="status">{statusMessage}</p>
 
