@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-
-type Study = { id: string; name: string; description?: string }
-type Measurement = { id: string; location_name?: string; ph?: number; temperature?: number }
-type Filter = { id: string; status?: string; score?: number; created_at?: string }
+import type { Filter, Measurement, Study } from './types'
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://localhost:8000'
 const TOKEN_KEY = 'blau_access_token'
