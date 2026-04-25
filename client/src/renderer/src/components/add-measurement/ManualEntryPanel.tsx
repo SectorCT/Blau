@@ -1,7 +1,8 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@renderer/components/ui/button'
+import { type BarcelonaMeasurementPreset } from '@renderer/data/barcelonaPresets'
 import { cn } from '@renderer/lib/utils'
 import { createMeasurement } from '@renderer/utils/api'
 
@@ -9,6 +10,7 @@ type ParameterPreset = {
   parameterCode: string
   parameterName: string
   unit: string
+  category: 'standard' | 'microplastics'
 }
 
 type ManualParameterRow = {
@@ -18,79 +20,137 @@ type ManualParameterRow = {
 }
 
 const PARAMETER_PRESETS: ParameterPreset[] = [
-  { parameterCode: 'Alk-Tot', parameterName: 'Alkalinity', unit: 'mg/l' },
-  { parameterCode: 'Al-Dis', parameterName: 'Aluminium', unit: 'mg/l' },
-  { parameterCode: 'Al-Tot', parameterName: 'Aluminium', unit: 'mg/l' },
-  { parameterCode: 'NH3N', parameterName: 'Ammonia', unit: 'mg/l' },
-  { parameterCode: 'NH4N', parameterName: 'Ammonia', unit: 'mg/l' },
-  { parameterCode: 'As-Dis', parameterName: 'Arsenic', unit: 'mg/l' },
-  { parameterCode: 'As-Tot', parameterName: 'Arsenic', unit: 'mg/l' },
-  { parameterCode: 'HCO3', parameterName: 'Bicarbonate', unit: 'mg/l' },
-  { parameterCode: 'Cd-Dis', parameterName: 'Cadmium', unit: 'µg/l' },
-  { parameterCode: 'Cd-Tot', parameterName: 'Cadmium', unit: 'µg/l' },
-  { parameterCode: 'Ca-Dis', parameterName: 'Calcium', unit: 'mg/l' },
-  { parameterCode: 'Ca-Tot', parameterName: 'Calcium', unit: 'mg/l' },
-  { parameterCode: 'Cl-Dis', parameterName: 'Chloride', unit: 'mg/l' },
-  { parameterCode: 'Cl-Tot', parameterName: 'Chloride', unit: 'mg/l' },
-  { parameterCode: 'Cr-Dis', parameterName: 'Chromium', unit: 'mg/l' },
-  { parameterCode: 'Cr-Tot', parameterName: 'Chromium', unit: 'mg/l' },
-  { parameterCode: 'Cu-Dis', parameterName: 'Copper', unit: 'mg/l' },
-  { parameterCode: 'Cu-Tot', parameterName: 'Copper', unit: 'mg/l' },
-  { parameterCode: 'EC', parameterName: 'Electrical Conductance', unit: 'µS/cm' },
-  { parameterCode: 'F-Dis', parameterName: 'Fluoride', unit: 'mg/l' },
-  { parameterCode: 'F-Tot', parameterName: 'Fluoride', unit: 'mg/l' },
-  { parameterCode: 'H-T', parameterName: 'Hardness', unit: 'mg/l' },
-  { parameterCode: 'Fe-Dis', parameterName: 'Iron', unit: 'mg/l' },
-  { parameterCode: 'Fe-Tot', parameterName: 'Iron', unit: 'mg/l' },
-  { parameterCode: 'Pb-Dis', parameterName: 'Lead', unit: 'mg/l' },
-  { parameterCode: 'Pb-Tot', parameterName: 'Lead', unit: 'mg/l' },
-  { parameterCode: 'Mg-Dis', parameterName: 'Magnesium', unit: 'mg/l' },
-  { parameterCode: 'Mg-Tot', parameterName: 'Magnesium', unit: 'mg/l' },
-  { parameterCode: 'Mn-Dis', parameterName: 'Manganese', unit: 'mg/l' },
-  { parameterCode: 'Mn-Tot', parameterName: 'Manganese', unit: 'mg/l' },
-  { parameterCode: 'Hg-Dis', parameterName: 'Mercury', unit: 'µg/l' },
-  { parameterCode: 'Hg-Tot', parameterName: 'Mercury', unit: 'µg/l' },
-  { parameterCode: 'Ni-Dis', parameterName: 'Nickel', unit: 'mg/l' },
-  { parameterCode: 'Ni-Tot', parameterName: 'Nickel', unit: 'mg/l' },
-  { parameterCode: 'TOC', parameterName: 'Organic Carbon', unit: 'mg/l' },
-  { parameterCode: 'DOC', parameterName: 'Organic Carbon', unit: 'mg/l' },
-  { parameterCode: 'DRP', parameterName: 'Orthophosphate', unit: 'mg/l' },
-  { parameterCode: 'NO2N', parameterName: 'Oxidized Nitrogen', unit: 'mg/l' },
-  { parameterCode: 'NO3N', parameterName: 'Oxidized Nitrogen', unit: 'mg/l' },
-  { parameterCode: 'NOxN', parameterName: 'Oxidized Nitrogen', unit: 'mg/l' },
-  { parameterCode: 'O2-Dis', parameterName: 'Oxygen', unit: 'mg/l' },
-  { parameterCode: 'BOD', parameterName: 'Oxygen Demand', unit: 'mg/l' },
-  { parameterCode: 'COD', parameterName: 'Oxygen Demand', unit: 'mg/l' },
-  { parameterCode: 'Sal', parameterName: 'Salinity', unit: 'psu' },
-  { parameterCode: 'Se-Dis', parameterName: 'Selenium', unit: 'mg/l' },
-  { parameterCode: 'Se-Tot', parameterName: 'Selenium', unit: 'mg/l' },
-  { parameterCode: 'SO4-Dis', parameterName: 'Sulfate', unit: 'mg/l' },
-  { parameterCode: 'SO4-Tot', parameterName: 'Sulfate', unit: 'mg/l' },
-  { parameterCode: 'TURB', parameterName: 'Turbidity', unit: 'NTU' },
-  { parameterCode: 'U-Dis', parameterName: 'Uranium', unit: 'mg/l' },
-  { parameterCode: 'U-Tot', parameterName: 'Uranium', unit: 'mg/l' },
-  { parameterCode: 'V-Dis', parameterName: 'Vanadium', unit: 'mg/l' },
-  { parameterCode: 'V-Tot', parameterName: 'Vanadium', unit: 'mg/l' },
-  { parameterCode: 'Zn-Dis', parameterName: 'Zinc', unit: 'mg/l' },
-  { parameterCode: 'Zn-Tot', parameterName: 'Zinc', unit: 'mg/l' },
+  { parameterCode: 'Alk-Tot', parameterName: 'Alkalinity', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Al-Dis', parameterName: 'Aluminium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Al-Tot', parameterName: 'Aluminium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'NH3N', parameterName: 'Ammonia', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'NH4N', parameterName: 'Ammonia', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'As-Dis', parameterName: 'Arsenic', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'As-Tot', parameterName: 'Arsenic', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'HCO3', parameterName: 'Bicarbonate', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Cd-Dis', parameterName: 'Cadmium', unit: 'ug/l', category: 'standard' },
+  { parameterCode: 'Cd-Tot', parameterName: 'Cadmium', unit: 'ug/l', category: 'standard' },
+  { parameterCode: 'Ca-Dis', parameterName: 'Calcium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Ca-Tot', parameterName: 'Calcium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Cl-Dis', parameterName: 'Chloride', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Cl-Tot', parameterName: 'Chloride', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Cr-Dis', parameterName: 'Chromium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Cr-Tot', parameterName: 'Chromium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Cu-Dis', parameterName: 'Copper', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Cu-Tot', parameterName: 'Copper', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'EC', parameterName: 'Electrical Conductance', unit: 'uS/cm', category: 'standard' },
+  { parameterCode: 'F-Dis', parameterName: 'Fluoride', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'F-Tot', parameterName: 'Fluoride', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'H-T', parameterName: 'Hardness', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Fe-Dis', parameterName: 'Iron', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Fe-Tot', parameterName: 'Iron', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Pb-Dis', parameterName: 'Lead', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Pb-Tot', parameterName: 'Lead', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Mg-Dis', parameterName: 'Magnesium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Mg-Tot', parameterName: 'Magnesium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Mn-Dis', parameterName: 'Manganese', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Mn-Tot', parameterName: 'Manganese', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Hg-Dis', parameterName: 'Mercury', unit: 'ug/l', category: 'standard' },
+  { parameterCode: 'Hg-Tot', parameterName: 'Mercury', unit: 'ug/l', category: 'standard' },
+  { parameterCode: 'Ni-Dis', parameterName: 'Nickel', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Ni-Tot', parameterName: 'Nickel', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'TOC', parameterName: 'Organic Carbon', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'DOC', parameterName: 'Organic Carbon', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'DRP', parameterName: 'Orthophosphate', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'NO2N', parameterName: 'Oxidized Nitrogen', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'NO3N', parameterName: 'Oxidized Nitrogen', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'NOxN', parameterName: 'Oxidized Nitrogen', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'O2-Dis', parameterName: 'Oxygen', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'BOD', parameterName: 'Oxygen Demand', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'COD', parameterName: 'Oxygen Demand', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Sal', parameterName: 'Salinity', unit: 'psu', category: 'standard' },
+  { parameterCode: 'Se-Dis', parameterName: 'Selenium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Se-Tot', parameterName: 'Selenium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'SO4-Dis', parameterName: 'Sulfate', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'SO4-Tot', parameterName: 'Sulfate', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'TURB', parameterName: 'Turbidity', unit: 'NTU', category: 'standard' },
+  { parameterCode: 'U-Dis', parameterName: 'Uranium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'U-Tot', parameterName: 'Uranium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'V-Dis', parameterName: 'Vanadium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'V-Tot', parameterName: 'Vanadium', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Zn-Dis', parameterName: 'Zinc', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'Zn-Tot', parameterName: 'Zinc', unit: 'mg/l', category: 'standard' },
+  { parameterCode: 'pe', parameterName: 'Polyethylene (PE)', unit: 'ug/l', category: 'microplastics' },
+  { parameterCode: 'pp', parameterName: 'Polypropylene (PP)', unit: 'ug/l', category: 'microplastics' },
+  { parameterCode: 'ps', parameterName: 'Polystyrene (PS)', unit: 'ug/l', category: 'microplastics' },
+  { parameterCode: 'pet', parameterName: 'PET', unit: 'ug/l', category: 'microplastics' },
+  { parameterCode: 'nylon', parameterName: 'Nylon', unit: 'ug/l', category: 'microplastics' },
+  { parameterCode: 'pvc', parameterName: 'PVC', unit: 'ug/l', category: 'microplastics' },
 ]
 
 const getPresetKey = (preset: ParameterPreset): string =>
   `${preset.parameterCode}|${preset.parameterName}|${preset.unit}`
 
-export function ManualEntryPanel(): React.JSX.Element {
+const PARAMETER_TABS = [
+  { key: 'all', label: 'All Parameters' },
+  { key: 'standard', label: 'Standard' },
+  { key: 'microplastics', label: 'Microplastics' },
+] as const
+
+type ParameterTab = (typeof PARAMETER_TABS)[number]['key']
+
+type ManualEntryPanelProps = {
+  preset?: BarcelonaMeasurementPreset | null
+  onBackToMethodSelection?: () => void
+}
+
+export function ManualEntryPanel({
+  preset = null,
+  onBackToMethodSelection,
+}: ManualEntryPanelProps): React.JSX.Element {
   const navigate = useNavigate()
   const [measurementName, setMeasurementName] = useState('')
   const [temperature, setTemperature] = useState('')
   const [ph, setPh] = useState('')
   const [rows, setRows] = useState<ManualParameterRow[]>([])
+  const [activeTab, setActiveTab] = useState<ParameterTab>('all')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const presetsByKey = Object.fromEntries(PARAMETER_PRESETS.map((p) => [getPresetKey(p), p] as const))
+  const presetsByCode = useMemo(
+    () => new Map(PARAMETER_PRESETS.map((item) => [item.parameterCode.toLowerCase(), item] as const)),
+    []
+  )
+
+  const visiblePresetOptions = useMemo(() => {
+    if (activeTab === 'all') return PARAMETER_PRESETS
+    return PARAMETER_PRESETS.filter((presetItem) => presetItem.category === activeTab)
+  }, [activeTab])
+
+  useEffect(() => {
+    if (!preset) return
+    setMeasurementName(preset.name)
+    setTemperature(String(preset.temperature))
+    setPh(String(preset.ph))
+    setRows(
+      preset.parameters
+        .map((parameter, index) => {
+          const existing = presetsByCode.get(parameter.parameterCode.toLowerCase())
+          const normalizedPreset: ParameterPreset = existing ?? {
+            parameterCode: parameter.parameterCode,
+            parameterName: parameter.parameterName,
+            unit: parameter.unit,
+            category: 'standard',
+          }
+          const presetKey = getPresetKey(normalizedPreset)
+          return {
+            id: `preset-${preset.id}-${index}`,
+            presetKey,
+            value: String(parameter.value),
+          }
+        })
+        .filter((row): row is ManualParameterRow => !!row)
+    )
+  }, [preset, presetsByCode])
 
   const addRow = (): void => {
-    const first = PARAMETER_PRESETS[0]
+    const first = visiblePresetOptions[0] ?? PARAMETER_PRESETS[0]
     if (!first) return
     setRows((prev) => [
       ...prev,
@@ -203,6 +263,11 @@ export function ManualEntryPanel(): React.JSX.Element {
           <p className="text-sm text-muted-foreground">
             Structure aligned to `POST /api/measurements/`.
           </p>
+          {preset ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Using preset: <span className="font-medium text-foreground">{preset.name}</span>
+            </p>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -267,6 +332,23 @@ export function ManualEntryPanel(): React.JSX.Element {
             <Plus className="mr-1.5" size={14} /> Add Parameter
           </Button>
         </div>
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {PARAMETER_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                'rounded-[6px] border px-2.5 py-1 text-xs transition-colors',
+                activeTab === tab.key
+                  ? 'border-foreground bg-secondary text-foreground'
+                  : 'border-border bg-card text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
         <div className="min-h-0 flex-1 space-y-2 overflow-auto pr-1">
           {rows.length === 0 ? (
@@ -288,7 +370,7 @@ export function ManualEntryPanel(): React.JSX.Element {
                   onChange={(e) => updateRow(row.id, { presetKey: e.target.value })}
                   className="h-9 rounded-[6px] border border-input bg-background px-2 text-sm"
                 >
-                  {PARAMETER_PRESETS.map((p) => {
+                  {visiblePresetOptions.map((p) => {
                     const key = getPresetKey(p)
                     return (
                       <option key={key} value={key}>
@@ -334,6 +416,16 @@ export function ManualEntryPanel(): React.JSX.Element {
           <Button variant="outline" onClick={() => void handleSaveAndGenerate()} disabled={!canSubmit || isSubmitting}>
             Save &amp; Generate Filter
           </Button>
+          {onBackToMethodSelection ? (
+            <Button variant="outline" onClick={onBackToMethodSelection} disabled={isSubmitting}>
+              Back to methods
+            </Button>
+          ) : null}
+          {!onBackToMethodSelection ? (
+            <Button variant="outline" onClick={() => navigate('/add-measurement')} disabled={isSubmitting}>
+              Back to methods
+            </Button>
+          ) : null}
         </div>
         {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
       </div>

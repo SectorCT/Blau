@@ -5,6 +5,10 @@ import { CsvImportPanel } from '@renderer/components/add-measurement/CsvImportPa
 import { GemstatMapPanel } from '@renderer/components/add-measurement/GemstatMapPanel'
 import { ManualEntryPanel } from '@renderer/components/add-measurement/ManualEntryPanel'
 import { UsbEntryPanel } from '@renderer/components/add-measurement/UsbEntryPanel'
+import {
+  BARCELONA_MEASUREMENT_PRESETS,
+  type BarcelonaMeasurementPreset,
+} from '@renderer/data/barcelonaPresets'
 
 type Method = 'manual' | 'usb' | 'map' | 'csv'
 
@@ -28,6 +32,7 @@ const methods: { key: Method; label: string; description: string; icon: LucideIc
 export function AddMeasurement(): React.JSX.Element {
   const navigate = useNavigate()
   const [selectedMethod, setSelectedMethod] = useState<Method | null>(null)
+  const [selectedPreset, setSelectedPreset] = useState<BarcelonaMeasurementPreset | null>(null)
 
   return (
     <div className="flex h-full min-h-0 flex-col p-4 md:p-6 lg:p-8">
@@ -47,6 +52,27 @@ export function AddMeasurement(): React.JSX.Element {
       <div className="min-h-0 flex-1">
         {!selectedMethod ? (
           <div className="mx-auto w-full max-w-[900px]">
+          <div className="mb-4 rounded-[6px] border border-border bg-card p-4">
+            <p className="scientific-label mb-2">Barcelona Presets</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {BARCELONA_MEASUREMENT_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  onClick={() => {
+                    setSelectedPreset(preset)
+                    setSelectedMethod('manual')
+                  }}
+                  className="rounded-[6px] border border-border bg-surface-elevated p-3 text-left transition-colors hover:bg-secondary"
+                >
+                  <p className="text-sm font-medium">{preset.name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{preset.description}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {preset.temperature} C | pH {preset.ph} | {preset.parameters.length} params
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {methods.map((method) => {
               const Icon = method.icon
@@ -73,7 +99,15 @@ export function AddMeasurement(): React.JSX.Element {
           </div>
         ) : null}
 
-        {selectedMethod === 'manual' ? <ManualEntryPanel /> : null}
+        {selectedMethod === 'manual' ? (
+          <ManualEntryPanel
+            preset={selectedPreset}
+            onBackToMethodSelection={() => {
+              setSelectedPreset(null)
+              setSelectedMethod(null)
+            }}
+          />
+        ) : null}
 
         {selectedMethod === 'usb' ? <UsbEntryPanel onBack={() => setSelectedMethod(null)} /> : null}
 

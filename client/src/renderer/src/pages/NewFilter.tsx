@@ -31,6 +31,15 @@ const resolveStudies = (payload: StudyListResponse): Study[] => {
 }
 
 const NEW_STUDY_OPTION = '__new_study__'
+const MICROPLASTIC_CODES = new Set(['pe', 'pp', 'ps', 'pet', 'nylon', 'pvc', 'mp', 'microplastic'])
+const ENRICHMENT_MINERALS = [
+  { key: 'calcium', label: 'Calcium (Ca2+)', target: '40-80 mg/L' },
+  { key: 'magnesium', label: 'Magnesium (Mg2+)', target: '10-30 mg/L' },
+  { key: 'potassium', label: 'Potassium (K+)', target: '1-12 mg/L' },
+  { key: 'zinc', label: 'Zinc (Zn2+)', target: '0.5-3 mg/L' },
+  { key: 'selenium', label: 'Selenium (Se2-)', target: '10-40 ug/L' },
+  { key: 'silicate', label: 'Silicate (SiO3)', target: '5-15 mg/L' },
+] as const
 
 const formatFixed = (value: unknown): string => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '-'
@@ -54,6 +63,8 @@ export function NewFilter(): React.JSX.Element {
   const [isCreatingStudyInline, setIsCreatingStudyInline] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [useQuantumComputer, setUseQuantumComputer] = useState(false)
+  const [enrichmentEnabled, setEnrichmentEnabled] = useState(false)
+  const [selectedMinerals, setSelectedMinerals] = useState<string[]>(['calcium', 'magnesium'])
   const [error, setError] = useState<string | null>(null)
   const [inlineStudyName, setInlineStudyName] = useState('')
   const [inlineStudyDescription, setInlineStudyDescription] = useState('')
@@ -209,6 +220,26 @@ export function NewFilter(): React.JSX.Element {
     }))
   }, [measurementParameters, selectedTargetCodes])
 
+  const microplasticCodeLabels = useMemo(
+    () =>
+      selectedCodeLabels.filter(
+        (item) => MICROPLASTIC_CODES.has(item.code.toLowerCase()) || item.label.toLowerCase().includes('plastic')
+      ),
+    [selectedCodeLabels]
+  )
+
+  const standardCodeLabels = useMemo(
+    () =>
+      selectedCodeLabels.filter(
+        (item) =>
+          !(
+            MICROPLASTIC_CODES.has(item.code.toLowerCase()) ||
+            item.label.toLowerCase().includes('plastic')
+          )
+      ),
+    [selectedCodeLabels]
+  )
+
   const buildMeasurementPayload = (
     detail: Measurement
   ): { temperature: number; ph: number; parameters: MeasurementParameter[] } => ({
@@ -247,7 +278,12 @@ export function NewFilter(): React.JSX.Element {
       useQuantumComputer,
       measurement: buildMeasurementPayload(selectedMeasurementDetail),
       targetParameterCodes: selectedTargetParameterCodes,
-      coreInputs: {}
+      coreInputs: {
+        enrichment: {
+          enabled: enrichmentEnabled,
+          minerals: enrichmentEnabled ? selectedMinerals : [],
+        },
+      }
     }
     console.log(
       '[New Filter] study selection:',
@@ -279,6 +315,12 @@ export function NewFilter(): React.JSX.Element {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const toggleMineral = (mineral: string): void => {
+    setSelectedMinerals((prev) =>
+      prev.includes(mineral) ? prev.filter((item) => item !== mineral) : [...prev, mineral]
+    )
   }
 
   const handleCreateStudyInline = async (): Promise<void> => {
@@ -461,7 +503,18 @@ export function NewFilter(): React.JSX.Element {
                 {selectedCodeLabels.length === 0 ? (
                   <span className="text-xs text-muted-foreground">No impurities selected yet.</span>
                 ) : null}
-                {selectedCodeLabels.map((item) => (
+                {microplasticCodeLabels.map((item) => (
+                  <button
+                    key={item.code}
+                    type="button"
+                    onClick={() => handleRemoveImpurity(item.code)}
+                    className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs text-blue-900 transition-colors hover:bg-blue-100 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-100"
+                    title="Remove"
+                  >
+                    MP | {item.label} ({item.code}) x
+                  </button>
+                ))}
+                {standardCodeLabels.map((item) => (
                   <button
                     key={item.code}
                     type="button"
@@ -472,6 +525,56 @@ export function NewFilter(): React.JSX.Element {
                     {item.label} ({item.code}) x
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="scientific-label mb-1 block">Water Enrichment</label>
+              <div className="space-y-3 rounded-[6px] border border-input bg-surface-elevated px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">Enable enrichment layers</p>
+                    <p className="text-xs text-muted-foreground">
+                      Preview mineral release settings in frontend while backend support is in progress.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enrichmentEnabled}
+                    onClick={() => setEnrichmentEnabled((prev) => !prev)}
+                    className={`inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
+                      enrichmentEnabled
+                        ? 'border-emerald-500 bg-emerald-500/80'
+                        : 'border-border bg-muted'
+                    }`}
+                  >
+                    <span
+                      className={`h-5 w-5 rounded-full bg-white transition-transform ${
+                        enrichmentEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </button>
+                </div>
+                {enrichmentEnabled ? (
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    {ENRICHMENT_MINERALS.map((mineral) => (
+                      <button
+                        key={mineral.key}
+                        type="button"
+                        onClick={() => toggleMineral(mineral.key)}
+                        className={`rounded-[6px] border px-3 py-2 text-left transition-colors ${
+                          selectedMinerals.includes(mineral.key)
+                            ? 'border-emerald-300 bg-emerald-50/70 dark:border-emerald-500/40 dark:bg-emerald-500/10'
+                            : 'border-border bg-card hover:bg-secondary'
+                        }`}
+                      >
+                        <p className="text-sm font-medium">{mineral.label}</p>
+                        <p className="text-xs text-muted-foreground">Target: {mineral.target}</p>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@renderer/components/ui/button'
 import { WindowControls } from '@renderer/components/WindowControls'
+import { setAccessToken, setRefreshToken } from '@renderer/utils/api/authTokenStore'
 import { ApiError } from '@renderer/utils/api/makeAuthenticatedReq'
 import { getAccessToken, login, signup } from '@renderer/utils/api'
 
@@ -160,6 +161,12 @@ export function Auth(): React.JSX.Element {
     }
   }
 
+  const handleSkipLogin = (): void => {
+    setAccessToken('preview-access-token')
+    setRefreshToken('preview-refresh-token')
+    navigate('/dashboard')
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="drag-region flex h-12 items-center justify-between border-b border-border bg-card/90 px-3 backdrop-blur">
@@ -254,6 +261,13 @@ export function Auth(): React.JSX.Element {
         </form>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">Blau Platform</p>
+        <button
+          type="button"
+          onClick={handleSkipLogin}
+          className="mt-3 w-full rounded-[6px] border border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          Skip login for UI preview
+        </button>
       </div>
       </div>
     </div>
