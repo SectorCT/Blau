@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { API_BASE, TOKEN_KEY } from './lib/config'
 import type { Filter, Measurement, Study } from './types'
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://localhost:8000'
-const TOKEN_KEY = 'blau_access_token'
 
 async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem(TOKEN_KEY)
