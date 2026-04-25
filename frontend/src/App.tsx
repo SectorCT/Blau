@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AppHeader } from './components/AppHeader'
+import { LoginForm } from './components/LoginForm'
 import { StatusBanner } from './components/StatusBanner'
 import { TOKEN_KEY } from './lib/config'
 import { apiRequest } from './lib/http'
@@ -145,20 +146,13 @@ function App() {
       <StatusBanner message={statusMessage} />
 
       {!isAuthenticated ? (
-        <section className="card">
-          <h2>Authentication</h2>
-          <form onSubmit={onLogin} className="grid">
-            <label>
-              Email
-              <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
-            </label>
-            <label>
-              Password
-              <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
-            </label>
-            <button type="submit">Sign In</button>
-          </form>
-        </section>
+        <LoginForm
+          email={email}
+          password={password}
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+          onSubmit={onLogin}
+        />
       ) : (
         <div className="layout">
           <section className="card">
