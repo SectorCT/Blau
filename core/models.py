@@ -52,6 +52,7 @@ class LayerInfo(BaseModel):
     targetConcentration: Optional[str] = None  # e.g. "20-80 mg/L"
     atomPositions: list[AtomPosition] = []
     connections: list[dict[str, Any]] = []
+    mergedPollutants: list[str] = []
 
 
 class FilterInfo(BaseModel):

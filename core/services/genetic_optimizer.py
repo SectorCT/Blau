@@ -67,8 +67,8 @@ def optimize_filter(
     pollutant_charge: int,
     temperature: float = 25.0,
     ph: float = 7.0,
-    pop_size: int = 8,
-    n_gen: int = 3,
+    pop_size: int = 30,
+    n_gen: int = 15,
     use_quantum_computer: bool = False,
 ) -> dict:
     """Run genetic algorithm to find optimal filter parameters.
@@ -211,8 +211,8 @@ def optimize_enrichment_layer(
     temperature: float = 25.0,
     ph: float = 7.0,
     target_binding_ev: float = -0.15,
-    pop_size: int = 8,
-    n_gen: int = 3,
+    pop_size: int = 30,
+    n_gen: int = 15,
     use_quantum_computer: bool = False,
 ) -> dict:
     """GA optimization for enrichment layers.
