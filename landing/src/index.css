@@ -1,0 +1,17 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: Inter, 'Segoe UI', Roboto, Arial, sans-serif;
+  background: linear-gradient(180deg, #e8f5ff 0%, #f4fbff 55%, #eef8ff 100%);
+}
