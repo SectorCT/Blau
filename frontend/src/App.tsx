@@ -18,6 +18,7 @@ function App() {
   const [password, setPassword] = useState('')
   const [token, setToken] = useState<string | null>(localStorage.getItem(TOKEN_KEY))
   const [statusMessage, setStatusMessage] = useState<string>('Ready')
+  const [isLoading, setIsLoading] = useState(false)
 
   const [studies, setStudies] = useState<Study[]>([])
   const [newStudyName, setNewStudyName] = useState('')
@@ -51,7 +52,12 @@ function App() {
 
   async function refreshData() {
     if (!isAuthenticated) return
-    await Promise.all([loadStudies(), loadMeasurements(), loadFilters()])
+    setIsLoading(true)
+    try {
+      await Promise.all([loadStudies(), loadMeasurements(), loadFilters()])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -63,6 +69,7 @@ function App() {
   async function onLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setStatusMessage('Signing in...')
+    setIsLoading(true)
     try {
       const data = await login(email, password)
       localStorage.setItem(TOKEN_KEY, data.access)
@@ -70,6 +77,8 @@ function App() {
       setStatusMessage('Logged in successfully')
     } catch (error: unknown) {
       setStatusMessage(error instanceof Error ? error.message : 'Login failed')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -145,7 +154,7 @@ function App() {
         }}
       />
 
-      <StatusBanner message={statusMessage} />
+      <StatusBanner message={isLoading ? `${statusMessage}...` : statusMessage} />
 
       {!isAuthenticated ? (
         <LoginForm
