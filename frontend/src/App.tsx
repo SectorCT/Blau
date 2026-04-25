@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { login } from './api/auth'
+import { generateFilter, listFilters } from './api/filters'
 import { createMeasurement, listMeasurements } from './api/measurements'
 import { createStudy, listStudies } from './api/studies'
 import { AppHeader } from './components/AppHeader'
@@ -10,7 +11,6 @@ import { MeasurementsPanel } from './components/MeasurementsPanel'
 import { StatusBanner } from './components/StatusBanner'
 import { StudiesPanel } from './components/StudiesPanel'
 import { TOKEN_KEY } from './lib/config'
-import { apiRequest } from './lib/http'
 import type { Filter, Measurement, Study } from './types'
 
 function App() {
@@ -45,7 +45,7 @@ function App() {
   }
 
   async function loadFilters() {
-    const data = await apiRequest<Filter[]>('/api/filters/')
+    const data = await listFilters()
     setFilters(data)
   }
 
@@ -121,13 +121,10 @@ function App() {
     }
     setStatusMessage('Submitting filter generation...')
     try {
-      await apiRequest('/api/filters/generate/', {
-        method: 'POST',
-        body: JSON.stringify({
-          measurement_id: selectedMeasurementId,
-          study_id: selectedStudyId || undefined,
-          use_quantum_computer: false,
-        }),
+      await generateFilter({
+        measurement_id: selectedMeasurementId,
+        study_id: selectedStudyId || undefined,
+        use_quantum_computer: false,
       })
       await loadFilters()
       setStatusMessage('Filter request submitted')
