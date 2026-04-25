@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, Eye, Microscope, Play } from 'lucide-react'
+import { ArrowLeft, Atom, Download, Eye, FlaskConical, Microscope, Play } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
@@ -373,6 +373,26 @@ export function FilterDetails(): React.JSX.Element {
             <Play size={16} strokeWidth={1.5} />
             Simulate
           </Button>
+          {view.enrichmentSummary?.enabled ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/filters/${id}/enrich/visualize`, { state: childNavState })}
+                disabled={!id || !importedReady}
+              >
+                <Atom size={16} strokeWidth={1.5} />
+                Visualize Enrichment
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/filters/${id}/enrich/simulate`, { state: childNavState })}
+                disabled={!id || !importedReady}
+              >
+                <FlaskConical size={16} strokeWidth={1.5} />
+                Simulate Enrichment
+              </Button>
+            </>
+          ) : null}
           <Button
             variant="outline"
             onClick={() => void handleExportCsv()}

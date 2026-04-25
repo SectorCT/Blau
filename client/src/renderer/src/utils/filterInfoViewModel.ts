@@ -4,6 +4,12 @@ import type {
   FilterLayerRow
 } from '@renderer/utils/api/types'
 import {
+  ENRICHMENT_MINERALS,
+  findMineralByKey,
+  findMineralByName,
+  type EnrichmentMineral
+} from '@renderer/data/enrichmentMinerals'
+import {
   collectAtomPositions,
   collectConnections,
   getAggregateBindingEnergyEv,
@@ -38,6 +44,14 @@ export type NormalizedLayerRow = {
   mergedPollutants: string[]
 }
 
+export type EnrichmentMineralView = {
+  mineral: EnrichmentMineral
+  releaseRate: number | null
+  targetConcentration: string | null
+  layerThickness: number | null
+  bindingEnergy: number | null
+}
+
 export type FilterInfoViewModel = {
   params: NormalizedParam[]
   layerRows: NormalizedLayerRow[]
@@ -58,6 +72,10 @@ export type FilterInfoViewModel = {
   method: string | null
   /** Enrichment summary (Ca/Mg/etc.) — null when enrichment was disabled or absent. */
   enrichmentSummary: FilterEnrichmentSummary | null
+  /** Layers whose mode is 'enrichment'. Subset of layerRows. */
+  enrichmentLayers: NormalizedLayerRow[]
+  /** Per-mineral view joined with the catalog (parsed target band, palette color, label). */
+  enrichmentMinerals: EnrichmentMineralView[]
   parameterBarData: Array<{ name: string; code: string; value: number; rawValue: number; unit: string }>
   parameterRadarData: Array<{ parameter: string; value: number }>
   parameterDonutData: Array<{ name: string; code: string; value: number; rawValue: number; unit: string }>
@@ -110,6 +128,59 @@ function pickMethod(info: FilterInfo | null | undefined, layerRows: NormalizedLa
   if (counts.size === 0) return null
   if (counts.size > 1) return 'mixed_empirical'
   return [...counts.keys()][0]
+}
+
+/**
+ * Join enrichment layer rows + summary minerals to the catalog.
+ * Layer rows carry releaseRate/targetConcentration; summary carries the user-selected mineral keys.
+ * The summary is the source of truth for "which minerals" — layers may not 1:1 match if the runner
+ * merged or split things. We iterate the summary first and look up the matching layer.
+ */
+function buildEnrichmentMinerals(
+  enrichmentLayers: NormalizedLayerRow[],
+  summary: FilterEnrichmentSummary | null
+): EnrichmentMineralView[] {
+  const layerByMineralKey = new Map<string, NormalizedLayerRow>()
+  for (const layer of enrichmentLayers) {
+    const candidate =
+      findMineralByName(layer.pollutant) ??
+      findMineralByName(layer.pollutantSymbol)
+    if (candidate && !layerByMineralKey.has(candidate.key)) {
+      layerByMineralKey.set(candidate.key, layer)
+    }
+  }
+  const seen = new Set<string>()
+  const ordered: EnrichmentMineral[] = []
+
+  const sourceKeys = summary?.minerals && summary.minerals.length > 0
+    ? summary.minerals
+    : Array.from(layerByMineralKey.keys())
+
+  for (const raw of sourceKeys) {
+    const mineral = findMineralByKey(raw) ?? findMineralByName(raw)
+    if (!mineral || seen.has(mineral.key)) continue
+    seen.add(mineral.key)
+    ordered.push(mineral)
+  }
+  // Defensive fallback: include any catalog mineral that has a layer match but missed from summary
+  for (const mineral of ENRICHMENT_MINERALS) {
+    if (seen.has(mineral.key)) continue
+    if (layerByMineralKey.has(mineral.key)) {
+      seen.add(mineral.key)
+      ordered.push(mineral)
+    }
+  }
+
+  return ordered.map((mineral) => {
+    const layer = layerByMineralKey.get(mineral.key) ?? null
+    return {
+      mineral,
+      releaseRate: layer?.releaseRate ?? null,
+      targetConcentration: layer?.targetConcentration ?? mineral.target,
+      layerThickness: layer?.layerThickness ?? null,
+      bindingEnergy: layer?.bindingEnergy ?? null
+    }
+  })
 }
 
 function pickEnrichmentSummary(info: FilterInfo | null | undefined): FilterEnrichmentSummary | null {
@@ -263,12 +334,16 @@ export const buildFilterInfoViewModel = (info: FilterInfo | null | undefined): F
 
   const method = pickMethod(info, layerRows)
   const enrichmentSummary = pickEnrichmentSummary(info)
+  const enrichmentLayers = layerRows.filter((row) => row.mode === 'enrichment')
+  const enrichmentMinerals = buildEnrichmentMinerals(enrichmentLayers, enrichmentSummary)
 
   return {
     params,
     layerRows,
     method,
     enrichmentSummary,
+    enrichmentLayers,
+    enrichmentMinerals,
     parameterBarData,
     parameterRadarData,
     parameterDonutData,

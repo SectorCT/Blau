@@ -8,6 +8,11 @@
 
 ModulinoThermo thermo;
 
+
+
+
+
+
 // D7 is a free GPIO on the Uno Q headers. We avoid D0/D1 (UART) and D2 just
 // in case the Bridge handshake uses it on some firmware revisions. Wire one
 // end of a jumper to D7 and touch the other end to GND to trigger.

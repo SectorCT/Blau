@@ -11,6 +11,8 @@ import { FilterDetails } from '@renderer/pages/FilterDetails'
 import { FilterAnalysis } from '@renderer/pages/FilterAnalysis'
 import { FilterVisualization } from '@renderer/pages/FilterVisualization'
 import { FilterSimulation } from '@renderer/pages/FilterSimulation'
+import { EnrichmentVisualization } from '@renderer/pages/EnrichmentVisualization'
+import { EnrichmentSimulation } from '@renderer/pages/EnrichmentSimulation'
 import { NewFilter } from '@renderer/pages/NewFilter'
 import { Measurements } from '@renderer/pages/Measurements'
 import { MeasurementDetails } from '@renderer/pages/MeasurementDetails'
@@ -61,6 +63,8 @@ function App(): React.JSX.Element {
             <Route path="/filters/visualize" element={<FilterVisualization />} />
             <Route path="/filters/:id/visualize" element={<FilterVisualization />} />
             <Route path="/filters/:id/simulate" element={<FilterSimulation />} />
+            <Route path="/filters/:id/enrich/visualize" element={<EnrichmentVisualization />} />
+            <Route path="/filters/:id/enrich/simulate" element={<EnrichmentSimulation />} />
             <Route path="/measurements" element={<Measurements />} />
             <Route path="/measurements/:id" element={<MeasurementDetails />} />
             <Route path="/studies" element={<Studies />} />

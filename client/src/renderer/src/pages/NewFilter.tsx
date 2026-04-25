@@ -19,6 +19,7 @@ import {
   type Study,
   type StudyListResponse
 } from '@renderer/utils/api/types'
+import { ENRICHMENT_MINERALS } from '@renderer/data/enrichmentMinerals'
 
 const resolveMeasurements = (payload: MeasurementListResponse): MeasurementListItem[] => {
   if (Array.isArray(payload)) return payload
@@ -32,14 +33,6 @@ const resolveStudies = (payload: StudyListResponse): Study[] => {
 
 const NEW_STUDY_OPTION = '__new_study__'
 const MICROPLASTIC_CODES = new Set(['pe', 'pp', 'ps', 'pet', 'nylon', 'pvc', 'mp', 'microplastic'])
-const ENRICHMENT_MINERALS = [
-  { key: 'calcium', label: 'Calcium (Ca2+)', target: '40-80 mg/L' },
-  { key: 'magnesium', label: 'Magnesium (Mg2+)', target: '10-30 mg/L' },
-  { key: 'potassium', label: 'Potassium (K+)', target: '1-12 mg/L' },
-  { key: 'zinc', label: 'Zinc (Zn2+)', target: '0.5-3 mg/L' },
-  { key: 'selenium', label: 'Selenium (Se2-)', target: '10-40 ug/L' },
-  { key: 'silicate', label: 'Silicate (SiO3)', target: '5-15 mg/L' },
-] as const
 
 const formatFixed = (value: unknown): string => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '-'
