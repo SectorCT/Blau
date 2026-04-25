@@ -41,16 +41,18 @@ async def generate_filter(req: GenerateRequest, request: Request):
         "ph": req.ph,
         "params": [p.model_dump() for p in req.params],
         "use_quantum_computer": req.useQuantumComputer,
+        "enrichment": req.enrichment.model_dump(),
     }
 
     logger.info(
-        "POST /generate — filter_id=%s measurement=%s temp=%.1f pH=%.1f use_quantum=%s params=%s",
+        "POST /generate — filter_id=%s measurement=%s temp=%.1f pH=%.1f use_quantum=%s params=%s enrichment=%s",
         filter_id,
         req.measurementId,
         req.temperature,
         req.ph,
         req.useQuantumComputer,
         [p.name for p in req.params],
+        req.enrichment.model_dump(),
     )
 
     loop = asyncio.get_running_loop()
@@ -172,27 +174,29 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
         temperature = float(measurement_data.get("temperature", 25.0))
         ph = float(measurement_data.get("ph", 7.0))
         use_quantum_computer = bool(measurement_data.get("use_quantum_computer", False))
+        enrichment_cfg = measurement_data.get("enrichment", {})
+        enrichment_enabled = bool(enrichment_cfg.get("enabled", False))
+        enrichment_minerals = enrichment_cfg.get("minerals", [])
 
         # Identify all target pollutants (sorted by concentration)
-        from services.pollutant_map import identify_all_pollutants
+        from services.pollutant_map import identify_all_pollutants, ENRICHMENT_MINERALS
         pollutants = identify_all_pollutants(params)
         log.info("[%s] Identified %d pollutant(s): %s",
                  filter_id[:8], len(pollutants),
                  [(s, d) for s, _, d, _ in pollutants])
 
         execution_target = "ibm_quantum" if use_quantum_computer else "simulator"
-        from services.genetic_optimizer import optimize_filter
+        from services.genetic_optimizer import optimize_filter, optimize_enrichment_layer
 
-        # ── Generate one layer per pollutant ──────────────────────────────
         layers = []
         all_atoms: list[dict] = []
         all_connections: list[tuple] = []
         z_offset = 0.0
-        # Gap between stacked layers (Å) — van der Waals spacing
-        _INTERLAYER_GAP = 3.4
+        _INTERLAYER_GAP = 3.4  # van der Waals interlayer spacing, Å
 
+        # ── Filtration layers (one per pollutant) ─────────────────────────
         for layer_idx, (p_symbol, p_charge, p_desc, p_value) in enumerate(pollutants):
-            log.info("[%s] Layer %d/%d: optimizing for %s (%s)",
+            log.info("[%s] Filtration layer %d/%d: optimizing for %s (%s)",
                      filter_id[:8], layer_idx + 1, len(pollutants), p_symbol, p_desc)
 
             result = optimize_filter(
@@ -224,7 +228,6 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
                 doping_level=result.get("doping_level", 0.15),
             )
 
-            # Offset atom z-coordinates and re-index ids for stacking
             id_offset = len(all_atoms)
             for atom in atom_positions:
                 all_atoms.append({
@@ -241,7 +244,6 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
                     conn.get("order", 1),
                 ))
 
-            # Compute z extent of this layer for the next offset
             if atom_positions:
                 max_z = max(a["z"] for a in atom_positions)
             else:
@@ -258,29 +260,105 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
                 "bindingEnergy": result["binding_energy"],
                 "removalEfficiency": result["removal_efficiency"],
                 "method": result.get("method", "hf"),
-                "atomPositions": [
-                    a for a in all_atoms[id_offset:]
-                ],
+                "mode": "filtration",
+                "releaseRate": None,
+                "targetConcentration": None,
+                "atomPositions": [a for a in all_atoms[id_offset:]],
                 "connections": [
                     {"from": f, "to": t, "order": o}
                     for f, t, o in all_connections[len(all_connections) - len(connections):]
                 ],
             })
 
-        # ── Aggregate metrics from all layers ─────────────────────────────
-        # Primary layer = first (highest concentration) for top-level fields
-        primary = layers[0]
+        # ── Enrichment layers (below filtration — water gets clean first) ─
+        if enrichment_enabled and enrichment_minerals:
+            log.info("[%s] Adding %d enrichment layer(s): %s",
+                     filter_id[:8], len(enrichment_minerals), enrichment_minerals)
+            for mineral_key in enrichment_minerals:
+                mineral_info = ENRICHMENT_MINERALS.get(mineral_key.lower())
+                if mineral_info is None:
+                    log.warning("[%s] Unknown mineral key %r — skipping", filter_id[:8], mineral_key)
+                    continue
+                m_symbol, m_charge, m_desc, min_mg, max_mg = mineral_info
+                target_conc = f"{min_mg}-{max_mg} mg/L"
 
-        # Combined removal efficiency: 1 - product(1 - eff_i/100) for each layer
+                log.info("[%s] Enrichment layer: %s (%s)", filter_id[:8], m_desc, m_symbol)
+                e_result = optimize_enrichment_layer(
+                    mineral_symbol=m_symbol,
+                    mineral_charge=m_charge,
+                    temperature=temperature,
+                    ph=ph,
+                    use_quantum_computer=use_quantum_computer,
+                )
+
+                e_positions, e_connections = generate_atom_positions(
+                    lattice_spacing=e_result["lattice_spacing"],
+                    material_type=e_result["material_type"],
+                    pollutant_symbol=m_symbol,
+                    functionalization_density=e_result.get("functionalization_density", 0.6),
+                    doping_level=e_result.get("doping_level", 0.15),
+                )
+
+                id_offset = len(all_atoms)
+                for atom in e_positions:
+                    all_atoms.append({
+                        "id": atom["id"] + id_offset,
+                        "x": atom["x"],
+                        "y": atom["y"],
+                        "z": atom["z"] + z_offset,
+                        "element": atom["element"],
+                    })
+                for conn in e_connections:
+                    all_connections.append((
+                        conn["from"] + id_offset,
+                        conn["to"] + id_offset,
+                        conn.get("order", 1),
+                    ))
+
+                if e_positions:
+                    max_z = max(a["z"] for a in e_positions)
+                else:
+                    max_z = e_result["layer_thickness"] * 10
+                z_offset += max_z + _INTERLAYER_GAP
+
+                layers.append({
+                    "pollutant": m_desc,
+                    "pollutantSymbol": m_symbol,
+                    "poreSize": e_result["pore_size"],
+                    "layerThickness": e_result["layer_thickness"],
+                    "latticeSpacing": e_result["lattice_spacing"],
+                    "materialType": e_result["material_type"],
+                    "bindingEnergy": e_result["binding_energy"],
+                    "removalEfficiency": 0.0,
+                    "method": e_result.get("method", "hf"),
+                    "mode": "enrichment",
+                    "releaseRate": e_result.get("release_rate"),
+                    "targetConcentration": target_conc,
+                    "atomPositions": [a for a in all_atoms[id_offset:]],
+                    "connections": [
+                        {"from": f, "to": t, "order": o}
+                        for f, t, o in all_connections[len(all_connections) - len(e_connections):]
+                    ],
+                })
+
+        # ── Aggregate metrics (filtration layers only for efficiency/binding) ─
+        filtration_layers = [l for l in layers if l["mode"] == "filtration"]
+        enrichment_layers = [l for l in layers if l["mode"] == "enrichment"]
+
+        # Primary layer = first filtration layer (highest pollutant concentration)
+        primary = filtration_layers[0] if filtration_layers else layers[0]
+
+        # Combined removal efficiency from filtration layers only
         combined_efficiency = 1.0
-        for layer in layers:
+        for layer in filtration_layers:
             combined_efficiency *= (1.0 - layer["removalEfficiency"] / 100.0)
         combined_efficiency = round((1.0 - combined_efficiency) * 100.0, 2)
 
-        # Average binding energy across layers
-        avg_binding = round(
-            sum(l["bindingEnergy"] for l in layers) / len(layers), 6
-        )
+        # Average binding energy across filtration layers only
+        if filtration_layers:
+            avg_binding = round(sum(l["bindingEnergy"] for l in filtration_layers) / len(filtration_layers), 6)
+        else:
+            avg_binding = 0.0
 
         # Determine overall method — if any layer used vqe_ibm, flag it
         methods = [l["method"] for l in layers]
@@ -288,13 +366,18 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
             "vqe" if "vqe" in methods else "hf"
         )
 
-        # Total layer thickness = sum of individual thicknesses
         total_thickness = round(sum(l["layerThickness"] for l in layers), 4)
 
         stacked_connections = [
             {"from": f, "to": t, "order": o}
             for f, t, o in sorted(all_connections)
         ]
+
+        enrichment_summary = {
+            "enabled": enrichment_enabled and len(enrichment_layers) > 0,
+            "mineralCount": len(enrichment_layers),
+            "minerals": [l["pollutant"] for l in enrichment_layers],
+        }
 
         filter_info = {
             "poreSize": primary["poreSize"],
@@ -311,6 +394,7 @@ def run_generation(filter_id: str, measurement_id: str, measurement_data: dict) 
             "atomPositions": all_atoms,
             "connections": stacked_connections,
             "layers": layers,
+            "enrichmentSummary": enrichment_summary,
         }
 
         sync_update_filter_status(
