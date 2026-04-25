@@ -12,7 +12,7 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
-    "dev": "electron-vite dev",
+    "dev": "cross-env ELECTRON_DISABLE_SANDBOX=1 electron-vite dev -- --no-sandbox --disable-setuid-sandbox",
     "build": "npm run typecheck && cross-env NODE_OPTIONS=--max-old-space-size=4096 electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && cross-env NODE_OPTIONS=--max-old-space-size=4096 electron-builder --dir",

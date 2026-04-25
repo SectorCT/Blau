@@ -4,6 +4,13 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { ReadlineParser, SerialPort } from 'serialport'
 import icon from '../../resources/icon.png?asset'
 
+// Linux: Chromium’s setuid sandbox often is not usable unless chrome-sandbox is root-owned
+// mode 4755. Prefer user-namespace / no-sandbox for local dev (and when explicitly opted in).
+if (process.platform === 'linux' && (is.dev || process.env.ELECTRON_DISABLE_SANDBOX === '1')) {
+  app.commandLine.appendSwitch('disable-setuid-sandbox')
+  app.commandLine.appendSwitch('no-sandbox')
+}
+
 const SERIAL_BAUD_RATE = 115200
 const READ_TIMEOUT_MS = 1200
 const RETRY_COUNT = 1

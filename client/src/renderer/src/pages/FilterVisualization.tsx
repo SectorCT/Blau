@@ -40,7 +40,6 @@ type ModelAtom = {
   bonds: number[]
   bondOrder: number[]
 }
-type VisualizationMode = 'molecular' | 'physical'
 
 const BASE_ELEMENTS = ['C', 'N', 'O', 'S', 'H'] as const
 const BASE_STYLE = { stick: { radius: 0.06 }, sphere: { scale: 0.15 } }
@@ -92,10 +91,6 @@ function downsampleXyz(xyz: string, maxAtoms: number): string {
   return `${sampled.length}\n${headerLine} (downsampled)\n${sampled.join('\n')}`
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value))
-}
-
 export function FilterVisualization(): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
@@ -109,7 +104,7 @@ export function FilterVisualization(): React.JSX.Element {
   const [filterInfo, setFilterInfo] = useState<FilterInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadedFromName, setLoadedFromName] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<VisualizationMode>('molecular')
+  const [zoomTransition, setZoomTransition] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -202,6 +197,9 @@ export function FilterVisualization(): React.JSX.Element {
     () => (hasExplicitConnections ? rawXyz : downsampleXyz(rawXyz, 500)),
     [rawXyz, hasExplicitConnections]
   )
+  useEffect(() => {
+    setZoomTransition(0)
+  }, [xyz])
   const atomCount = useMemo(() => Number(xyz.split('\n')[0] ?? 0), [xyz])
   const isDownsampled = rawAtomCount > atomCount
   const modelAtoms = useMemo(() => {
@@ -237,37 +235,6 @@ export function FilterVisualization(): React.JSX.Element {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
   }, [vm.atomPositions])
-  const physicalNodes = useMemo(() => {
-    if (vm.atomPositions.length === 0) return []
-    const sampleSize = Math.min(220, vm.atomPositions.length)
-    const step = Math.max(1, Math.floor(vm.atomPositions.length / sampleSize))
-    const sampled = vm.atomPositions.filter((_, index) => index % step === 0).slice(0, sampleSize)
-    const xs = sampled.map((atom) => atom.x)
-    const ys = sampled.map((atom) => atom.y)
-    const minX = Math.min(...xs)
-    const maxX = Math.max(...xs)
-    const minY = Math.min(...ys)
-    const maxY = Math.max(...ys)
-    const xRange = Math.max(0.0001, maxX - minX)
-    const yRange = Math.max(0.0001, maxY - minY)
-
-    return sampled.map((atom, index) => {
-      const normalizedX = (atom.x - minX) / xRange
-      const normalizedY = (atom.y - minY) / yRange
-      const jitter = ((index % 6) - 3) * 0.003
-      return {
-        id: atom.id,
-        element: atom.element,
-        cx: clamp(0.06 + normalizedX * 0.88 + jitter, 0.04, 0.96),
-        cy: clamp(0.14 + normalizedY * 0.72, 0.1, 0.9),
-        r: atom.element === 'C' ? 2.6 : atom.element === 'O' ? 2.2 : 2.0
-      }
-    })
-  }, [vm.atomPositions])
-  const poreBandHeight = useMemo(() => {
-    const pore = vm.metrics.poreSize ?? 1.2
-    return clamp(0.08 + pore / 22, 0.08, 0.22)
-  }, [vm.metrics.poreSize])
 
   const resetSelection = (): void => {
     setSelectedAtom(null)
@@ -281,11 +248,6 @@ export function FilterVisualization(): React.JSX.Element {
   }
 
   useEffect(() => {
-    if (viewMode !== 'molecular') {
-      viewerRef.current?.clear()
-      viewerRef.current = null
-      return
-    }
     if (loading) return
     if (!containerRef.current) return
 
@@ -372,13 +334,31 @@ export function FilterVisualization(): React.JSX.Element {
       viewer.clear()
       viewerRef.current = null
     }
-  }, [xyz, loading, atomCount, modelAtoms, viewMode])
+  }, [xyz, loading, atomCount, modelAtoms])
 
   const handleViewerClick = (): void => {
     if (!selectedAtom) return
     if (Date.now() - lastAtomClickRef.current < 120) return
     resetSelection()
   }
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || loading) return
+
+    const onWheel = (event: WheelEvent): void => {
+      const direction = Math.sign(event.deltaY)
+      if (direction === 0) return
+      // Positive deltaY = zoom out (pull back) in 3Dmol; negative = zoom in.
+      // Scope / cylinder view should strengthen on zoom out, fade on zoom in.
+      setZoomTransition((prev) => Math.min(1, Math.max(0, prev + direction * 0.07)))
+    }
+
+    container.addEventListener('wheel', onWheel, { passive: true })
+    return () => {
+      container.removeEventListener('wheel', onWheel)
+    }
+  }, [loading])
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden p-4 md:p-6 lg:p-8">
@@ -423,52 +403,117 @@ export function FilterVisualization(): React.JSX.Element {
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="flex min-h-0 flex-col gap-4 overflow-hidden">
           <div className="relative min-h-0 flex-1 overflow-hidden rounded-[8px] bg-black">
-            {viewMode === 'molecular' ? (
-              <div ref={containerRef} className="absolute inset-0" onClick={handleViewerClick} />
-            ) : (
-              <div className="absolute inset-0 flex flex-col bg-slate-950 text-slate-100">
-                <div className="border-b border-slate-800 px-4 py-3 text-xs text-slate-300">
-                  Contaminated water input
-                </div>
-                <div className="relative h-[12%] overflow-hidden border-b border-cyan-900/50 bg-cyan-500/15">
-                  <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-cyan-300/30" />
-                </div>
-                <div className="relative h-[48%] overflow-hidden border-y border-slate-700 bg-slate-800/90">
-                  {physicalNodes.map((node) => (
-                    <span
-                      key={`physical-node-${node.id}`}
-                      className="absolute block rounded-full"
-                      style={{
-                        left: `${node.cx * 100}%`,
-                        top: `${node.cy * 100 - 18}%`,
-                        width: `${node.r * 2}px`,
-                        height: `${node.r * 2}px`,
-                        backgroundColor:
-                          node.element === 'C' ? '#475569' : node.element === 'O' ? '#ef4444' : '#e2e8f0',
-                        boxShadow: '0 0 0.5px rgba(255,255,255,0.6)'
-                      }}
-                    />
-                  ))}
-                  <div
-                    className="absolute inset-x-2 bg-cyan-300/20"
-                    style={{
-                      top: `${50 - poreBandHeight * 50}%`,
-                      height: `${poreBandHeight * 100}%`
-                    }}
+            <div
+              ref={containerRef}
+              className="absolute inset-0 transition-opacity duration-500"
+              style={{ opacity: Math.max(0.2, 1 - zoomTransition * 0.78) }}
+              onClick={handleViewerClick}
+            />
+            <div
+              className="pointer-events-none absolute inset-0 transition-opacity duration-500"
+              style={{ opacity: zoomTransition }}
+            >
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 85% 55% at 50% 48%, rgba(120,200,255,0.12), rgba(6,14,24,0.95) 55%, rgba(2,6,12,1))'
+                }}
+              />
+              <div className="absolute inset-0 flex items-center justify-center p-6">
+                <svg
+                  className="h-full max-h-[min(420px,55vh)] w-full max-w-[min(720px,92%)]"
+                  viewBox="0 0 720 280"
+                  preserveAspectRatio="xMidYMid meet"
+                  aria-hidden
+                >
+                  <defs>
+                    <linearGradient id="fv-cyl-body" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#5a7a8e" stopOpacity="0.95" />
+                      <stop offset="45%" stopColor="#2d4150" stopOpacity="1" />
+                      <stop offset="100%" stopColor="#1a2833" stopOpacity="1" />
+                    </linearGradient>
+                    <linearGradient id="fv-cyl-cap" x1="0%" y1="50%" x2="100%" y2="50%">
+                      <stop offset="0%" stopColor="#7a9eb5" stopOpacity="0.5" />
+                      <stop offset="100%" stopColor="#3d5566" stopOpacity="0.9" />
+                    </linearGradient>
+                    <linearGradient id="fv-water-in" x1="0%" y1="50%" x2="100%" y2="50%">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.15" />
+                      <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.55" />
+                    </linearGradient>
+                    <linearGradient id="fv-water-out" x1="100%" y1="50%" x2="0%" y2="50%">
+                      <stop offset="0%" stopColor="#6ee7b7" stopOpacity="0.2" />
+                      <stop offset="100%" stopColor="#a5f3fc" stopOpacity="0.65" />
+                    </linearGradient>
+                    <filter id="fv-glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="2.2" result="b" />
+                      <feMerge>
+                        <feMergeNode in="b" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  <ellipse cx="108" cy="140" rx="22" ry="78" fill="url(#fv-cyl-cap)" stroke="#94a3b8" strokeOpacity="0.35" strokeWidth="1" />
+                  <rect x="108" y="62" width="504" height="156" fill="url(#fv-cyl-body)" />
+                  <path d="M108 62 Q360 42 612 62 L612 218 Q360 238 108 218 Z" fill="url(#fv-cyl-body)" opacity="0.92" />
+                  <ellipse cx="612" cy="140" rx="22" ry="78" fill="url(#fv-cyl-cap)" stroke="#94a3b8" strokeOpacity="0.35" strokeWidth="1" />
+
+                  <rect x="358" y="58" width="4" height="164" fill="#e2e8f0" opacity="0.85" filter="url(#fv-glow)" />
+                  <rect x="356" y="56" width="8" height="168" fill="none" stroke="#f8fafc" strokeOpacity="0.25" strokeWidth="0.75" rx="1" />
+
+                  <path
+                    d="M 40 155 C 120 155, 160 130, 200 128 C 260 125, 300 138, 356 138"
+                    fill="none"
+                    stroke="url(#fv-water-in)"
+                    strokeWidth="14"
+                    strokeLinecap="round"
+                    opacity="0.75"
                   />
-                  <div className="absolute left-3 top-2 rounded bg-slate-900/70 px-2 py-1 text-[11px] text-slate-300">
-                    Membrane body
-                  </div>
-                </div>
-                <div className="flex h-[28%] items-center justify-center border-t border-emerald-900/50 bg-emerald-500/10 text-sm text-emerald-200">
-                  Filtered output
-                </div>
+                  <path
+                    d="M 40 155 C 120 155, 160 130, 200 128 C 260 125, 300 138, 356 138"
+                    fill="none"
+                    stroke="#7dd3fc"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeDasharray="10 18"
+                    opacity="0.9"
+                  >
+                    <animate attributeName="stroke-dashoffset" from="0" to="-280" dur="2.4s" repeatCount="indefinite" />
+                  </path>
+
+                  <path
+                    d="M 364 138 C 420 138, 480 125, 540 128 C 580 130, 640 148, 688 152"
+                    fill="none"
+                    stroke="url(#fv-water-out)"
+                    strokeWidth="12"
+                    strokeLinecap="round"
+                    opacity="0.7"
+                  />
+                  <path
+                    d="M 364 138 C 420 138, 480 125, 540 128 C 580 130, 640 148, 688 152"
+                    fill="none"
+                    stroke="#a5f3fc"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeDasharray="8 16"
+                    opacity="0.85"
+                  >
+                    <animate attributeName="stroke-dashoffset" from="0" to="-240" dur="2.1s" repeatCount="indefinite" />
+                  </path>
+
+                  <ellipse cx="360" cy="72" rx="200" ry="14" fill="none" stroke="#64748b" strokeOpacity="0.25" strokeWidth="1" />
+                  <ellipse cx="360" cy="208" rx="200" ry="14" fill="none" stroke="#0f172a" strokeOpacity="0.5" strokeWidth="1" />
+                </svg>
               </div>
-            )}
+              <div className="absolute bottom-3 left-3 rounded bg-black/45 px-2 py-1 text-[11px] text-slate-200">
+                Scope: feed water (left) - membrane - permeate (right)
+              </div>
+            </div>
           </div>
           <div className="h-36 shrink-0 overflow-y-auto rounded-[8px] border border-border bg-card p-4">
             <h2 className="mb-2 text-sm font-semibold">Structure Description</h2>
-            {viewMode === 'molecular' && selectedAtom ? (
+            {selectedAtom ? (
               <div className="space-y-1 text-sm text-muted-foreground">
                 <p>
                   Selected atom: <span className="font-medium text-foreground">{selectedAtom.element}</span> #
@@ -487,7 +532,7 @@ export function FilterVisualization(): React.JSX.Element {
                   </span>
                 </p>
               </div>
-            ) : viewMode === 'molecular' ? (
+            ) : (
               <div className="space-y-1 text-sm text-muted-foreground">
                 <p>
                   {usingRealStructure
@@ -509,50 +554,12 @@ export function FilterVisualization(): React.JSX.Element {
                 </p>
                 <p>Click an atom to inspect it. Click empty space to return to this summary.</p>
               </div>
-            ) : (
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <p>
-                  Physical mode turns the molecular coordinates into a membrane cross-section: darker particles indicate
-                  the solid matrix, and the blue channel illustrates the effective pore corridor.
-                </p>
-                <p>
-                  This helps connect nanoscale structure with a real-world filter shape (water inlet, membrane body, and
-                  filtered outlet).
-                </p>
-                <p>Use the switch in the legend panel to return to atom-level molecular inspection.</p>
-              </div>
             )}
           </div>
         </section>
 
         <aside className="min-h-0 overflow-y-auto rounded-[8px] border border-border bg-card p-4">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold">Legend</h2>
-            <div className="inline-flex rounded-[6px] border border-border bg-background p-0.5 text-[11px]">
-              <button
-                type="button"
-                onClick={() => setViewMode('molecular')}
-                className={`rounded-[4px] px-2 py-1 transition-colors ${
-                  viewMode === 'molecular'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
-              >
-                Molecular
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('physical')}
-                className={`rounded-[4px] px-2 py-1 transition-colors ${
-                  viewMode === 'physical'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
-              >
-                Physical
-              </button>
-            </div>
-          </div>
+          <h2 className="mb-3 text-sm font-semibold">Legend</h2>
           <div className="space-y-2 text-sm">
             {elementCounts.length > 0 ? (
               elementCounts.map(([element]) => (
