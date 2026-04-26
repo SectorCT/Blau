@@ -1,3 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap');
+
+:root {
+  --bg: #080d13;
+  --panel: #0f1721;
+  --line-soft: #1a2633;
+  --line-strong: #27384a;
+  --text: #b7c6d3;
+  --muted: #8ca0b2;
+  --heading-text: #f0f5fa;
+  --accent: #7dd3fc;
+  --accent-strong: #98defd;
+
+  --display: 'Playfair Display', Georgia, serif;
+  --sans: 'Inter', 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 *,
 *::before,
 *::after {
@@ -5,13 +23,31 @@
 }
 
 html,
-body,
-#root {
+body {
   margin: 0;
   min-height: 100%;
 }
 
 body {
-  font-family: Inter, 'Segoe UI', Roboto, Arial, sans-serif;
-  background: linear-gradient(180deg, #e8f5ff 0%, #f4fbff 55%, #eef8ff 100%);
+  font-family: var(--sans);
+  color: var(--text);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(125, 211, 252, 0.08), transparent 30%),
+    radial-gradient(circle at 90% 100%, rgba(45, 65, 80, 0.35), transparent 34%),
+    #060b11;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
 }
