@@ -104,7 +104,6 @@ export function FilterVisualization(): React.JSX.Element {
   const [filterInfo, setFilterInfo] = useState<FilterInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadedFromName, setLoadedFromName] = useState<string | null>(null)
-  const [zoomTransition, setZoomTransition] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -197,9 +196,6 @@ export function FilterVisualization(): React.JSX.Element {
     () => (hasExplicitConnections ? rawXyz : downsampleXyz(rawXyz, 500)),
     [rawXyz, hasExplicitConnections]
   )
-  useEffect(() => {
-    setZoomTransition(0)
-  }, [xyz])
   const atomCount = useMemo(() => Number(xyz.split('\n')[0] ?? 0), [xyz])
   const isDownsampled = rawAtomCount > atomCount
   const modelAtoms = useMemo(() => {
@@ -341,24 +337,6 @@ export function FilterVisualization(): React.JSX.Element {
     if (Date.now() - lastAtomClickRef.current < 120) return
     resetSelection()
   }
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container || loading) return
-
-    const onWheel = (event: WheelEvent): void => {
-      const direction = Math.sign(event.deltaY)
-      if (direction === 0) return
-      // Positive deltaY = zoom out (pull back) in 3Dmol; negative = zoom in.
-      // Scope / cylinder view should strengthen on zoom out, fade on zoom in.
-      setZoomTransition((prev) => Math.min(1, Math.max(0, prev + direction * 0.07)))
-    }
-
-    container.addEventListener('wheel', onWheel, { passive: true })
-    return () => {
-      container.removeEventListener('wheel', onWheel)
-    }
-  }, [loading])
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden p-4 md:p-6 lg:p-8">

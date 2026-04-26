@@ -1,0 +1,4 @@
+GEMS Station Number,Local Station Number,Country Name,Water Type,Station Identifier,Water Body Name,Main Basin,Latitude,Longitude
+ESPBAR001,BCN-LL-01,Spain,River,Barcelona Llobregat Upstream,Llobregat,Western Mediterranean Coastal Basins,41.3479,2.1075
+ESPBAR002,BCN-BS-01,Spain,River,Barcelona Besos Urban Reach,Besos,Western Mediterranean Coastal Basins,41.4465,2.2336
+ESPBAR003,BCN-PT-01,Spain,Coastal,Barcelona Port Intake,Mediterranean Sea,Western Mediterranean Coastal Basins,41.3603,2.1699

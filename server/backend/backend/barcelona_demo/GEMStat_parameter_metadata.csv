@@ -1,0 +1,6 @@
+Parameter Code,Parameter Name,Parameter Long Name,Parameter Group
+TEMP,Temperature,Water temperature,Physical
+pH,pH,Potential of hydrogen,Physical
+EC,Electrical Conductance,Electrical conductance,Physical
+CL,Chloride,Chloride concentration,Chemical
+NA,Sodium,Sodium concentration,Chemical

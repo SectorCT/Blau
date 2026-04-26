@@ -93,7 +93,7 @@ void processRequest() {
         
         // Add Electrical Conductance (Mandatory in payload)
         JsonObject ec = params.createNestedObject();
-        ec["file"] = "demo_esp32";
+        ec["file"] = "blau-probe-esp32";
         ec["parameterCode"] = "EC";
         ec["parameterName"] = "Electrical Conductance";
         ec["unit"] = "uS/cm";
@@ -105,7 +105,7 @@ void processRequest() {
         
         for (int i = 0; i < extraCount; i++) {
           JsonObject p = params.createNestedObject();
-          p["file"] = "demo_esp32";
+          p["file"] = "blau-probe-esp32";
           p["parameterCode"] = extraParams[i].code;
           p["parameterName"] = extraParams[i].name;
           p["unit"] = extraParams[i].unit;
