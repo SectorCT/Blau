@@ -1,0 +1,7 @@
+GEMS Station Number,Sample Date,Sample Time,Depth,Parameter Code,Value,Unit
+ESPBAR001,2025-05-03,09:00:00,0.5,pH,7.62,pH units
+ESPBAR001,2025-05-10,09:10:00,0.5,pH,7.58,pH units
+ESPBAR002,2025-05-03,10:20:00,0.4,pH,7.49,pH units
+ESPBAR002,2025-05-10,10:25:00,0.4,pH,7.45,pH units
+ESPBAR003,2025-05-03,11:15:00,1.0,pH,8.04,pH units
+ESPBAR003,2025-05-10,11:20:00,1.0,pH,8.10,pH units
