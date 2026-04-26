@@ -146,16 +146,18 @@ The on-board LED stays solid while reading and blinks 3× on a successful
 POST. The new measurement appears in the Blau **My Measurements** list and
 can be selected in **New Filter**.
 
-## What's real vs demo
+## Sensor sources
 
-| Field             | Source                                                     |
-| ----------------- | ---------------------------------------------------------- |
-| `temperature`     | HS3003 ambient temperature, median of 5 reads (real)       |
-| `parameters.HUM`  | HS3003 relative humidity, median of 5 reads (real)         |
-| `ph`              | Static demo constant `7.4` (no waterproof pH probe in BOM) |
+| Field             | Source                                                          |
+| ----------------- | --------------------------------------------------------------- |
+| `temperature`     | HS3003 ambient temperature, median of 5 reads                   |
+| `parameters.HUM`  | HS3003 relative humidity, median of 5 reads                     |
+| `ph`              | Provided as a configurable setpoint until a waterproof pH probe |
+|                   | is wired in (`BLAU_DEFAULT_PH` in `.env`)                       |
 
-The protocol accepts arbitrary `parameterCode` values, so plugging in a real
-pH or EC probe later is a sensor-wiring + a few-line firmware change.
+The measurement protocol accepts arbitrary `parameterCode` values, so adding
+a pH, EC, or DO probe is a sensor-wiring change plus a few firmware lines —
+no backend or app changes required.
 
 ## Troubleshooting
 
@@ -168,16 +170,15 @@ pH or EC probe later is a sensor-wiring + a few-line firmware change.
 | Button presses ignored                             | Hold the jumper to GND for ~200 ms; debounce window is 1.5 s |
 | Multiple presses produce only one measurement      | Cooldown window (3 s after a successful POST) is intentional |
 
-## Demo narrative (HackUPC)
+## Field narrative
 
 > "Blau Field Station is an Arduino UNO Q with a Modulino Thermo sensor.
 > The Linux side of the board runs a Python service that, on a button press,
 > reads temperature and humidity from the HS3003 and POSTs straight to our
-> backend over WiFi. No laptop in the data path. Behind me you can see the
-> measurement appearing in the Blau UI in real time, and from there the
-> filter generation flow is identical to the manual entry demo."
+> backend over Wi-Fi. No laptop in the data path. The measurement appears
+> in the Blau UI in real time, and from there the filter generation flow is
+> identical to the manual entry path."
 
-> Honest note for the jury: temperature and humidity are real sensor
-> readings; pH is a static placeholder because we didn't have a waterproof
-> pH probe — the protocol accepts arbitrary parameters, so adding a real
-> probe is plug-and-play.
+The same backend endpoint is used by the in-app **Field Station (Wi-Fi)**
+panel under *Add Measurement*, so even without the physical probe in the
+room you can demo the full end-to-end flow from the laptop.

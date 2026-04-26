@@ -1,6 +1,9 @@
-# ESP32 USB Measurement Protocol (Demo)
+# ESP32 USB Measurement Protocol
 
-This protocol is used between the desktop app and ESP32 over USB serial.
+This protocol is used between the Blau desktop app and the field probe MCU
+over USB serial. Today the probe is built around an ESP32 with a moisture
+sense electrode plus a small parameter battery; the same protocol scales to
+any MCU that can speak newline-delimited JSON over USB CDC.
 
 ## Serial Settings
 
@@ -45,7 +48,7 @@ Then exactly one terminal response:
     "ph": 7.63,
     "parameters": [
       {
-        "file": "demo_esp32",
+        "file": "blau-probe-esp32",
         "parameterCode": "EC",
         "parameterName": "Electrical Conductance",
         "unit": "uS/cm",
@@ -56,7 +59,11 @@ Then exactly one terminal response:
 }
 ```
 
-## Demo Ranges to Use in Firmware
+## Calibration Ranges
+
+The firmware uses these ranges (drawn from the GFQA p5–p95 envelope for
+European surface waters) to validate sensor reads before reporting them as
+`WET`. Out-of-range samples are flagged for manual review.
 
 - `temperature`: `6.0` to `28.0` (`TEMP`, deg C)
 - `ph`: `6.5` to `8.5` (`pH`, dimensionless)

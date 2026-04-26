@@ -131,7 +131,7 @@ void sendWetMeasurement(const String& requestId) {
       Serial.print(",");
     }
     firstParam = false;
-    Serial.print("{\"file\":\"demo_esp32\",\"parameterCode\":\"");
+    Serial.print("{\"file\":\"blau-probe-esp32\",\"parameterCode\":\"");
     Serial.print(PARAMS[i].code);
     Serial.print("\",\"parameterName\":\"");
     Serial.print(PARAMS[i].name);

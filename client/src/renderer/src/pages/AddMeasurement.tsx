@@ -1,7 +1,8 @@
-import { ArrowLeft, FileUp, Keyboard, Map, type LucideIcon, Usb } from 'lucide-react'
+import { ArrowLeft, FileUp, Keyboard, Map, type LucideIcon, Usb, Wifi } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CsvImportPanel } from '@renderer/components/add-measurement/CsvImportPanel'
+import { FieldStationPanel } from '@renderer/components/add-measurement/FieldStationPanel'
 import { GemstatMapPanel } from '@renderer/components/add-measurement/GemstatMapPanel'
 import { ManualEntryPanel } from '@renderer/components/add-measurement/ManualEntryPanel'
 import { UsbEntryPanel } from '@renderer/components/add-measurement/UsbEntryPanel'
@@ -10,7 +11,7 @@ import {
   type BarcelonaMeasurementPreset,
 } from '@renderer/data/barcelonaPresets'
 
-type Method = 'manual' | 'usb' | 'map' | 'csv'
+type Method = 'manual' | 'field_station' | 'usb' | 'map' | 'csv'
 
 const methods: { key: Method; label: string; description: string; icon: LucideIcon }[] = [
   {
@@ -18,6 +19,12 @@ const methods: { key: Method; label: string; description: string; icon: LucideIc
     label: 'Manual Input',
     description: 'Enter parameters directly',
     icon: Keyboard
+  },
+  {
+    key: 'field_station',
+    label: 'Field Station (Wi-Fi)',
+    description: 'Pull live readings from the Blau field probe',
+    icon: Wifi
   },
   {
     key: 'usb',
@@ -107,6 +114,10 @@ export function AddMeasurement(): React.JSX.Element {
               setSelectedMethod(null)
             }}
           />
+        ) : null}
+
+        {selectedMethod === 'field_station' ? (
+          <FieldStationPanel onBack={() => setSelectedMethod(null)} />
         ) : null}
 
         {selectedMethod === 'usb' ? <UsbEntryPanel onBack={() => setSelectedMethod(null)} /> : null}
