@@ -272,7 +272,10 @@ export type GenerateFilterRequest = {
     parameters: MeasurementParameter[]
   }
   targetParameterCodes: string[]
-  coreInputs?: Record<string, unknown>
+  enrichment?: {
+    enabled: boolean
+    minerals: string[]
+  }
 }
 
 export type GenerateFilterResponse = {

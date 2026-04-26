@@ -279,12 +279,10 @@ export function NewFilter(): React.JSX.Element {
       useQuantumComputer,
       measurement: buildMeasurementPayload(selectedMeasurementDetail),
       targetParameterCodes: selectedTargetParameterCodes,
-      coreInputs: {
-        enrichment: {
-          enabled: enrichmentEnabled,
-          minerals: enrichmentEnabled ? selectedMinerals : [],
-        },
-      }
+      enrichment: {
+        enabled: enrichmentEnabled,
+        minerals: enrichmentEnabled ? selectedMinerals : [],
+      },
     }
     console.log(
       '[New Filter] study selection:',
@@ -541,7 +539,7 @@ export function NewFilter(): React.JSX.Element {
                   <div>
                     <p className="text-sm font-medium">Enable enrichment layers</p>
                     <p className="text-xs text-muted-foreground">
-                      Preview mineral release settings in frontend while backend support is in progress.
+                      Add mineral release layers to enrich filtered water with chosen minerals.
                     </p>
                   </div>
                   <button

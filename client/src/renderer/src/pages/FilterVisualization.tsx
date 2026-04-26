@@ -433,6 +433,11 @@ export function FilterVisualization(): React.JSX.Element {
                       <stop offset="45%" stopColor="#2d4150" stopOpacity="1" />
                       <stop offset="100%" stopColor="#1a2833" stopOpacity="1" />
                     </linearGradient>
+                    <linearGradient id="fv-cyl-body-enrich" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#2a5a4a" stopOpacity="0.95" />
+                      <stop offset="45%" stopColor="#1a3d30" stopOpacity="1" />
+                      <stop offset="100%" stopColor="#0f2820" stopOpacity="1" />
+                    </linearGradient>
                     <linearGradient id="fv-cyl-cap" x1="0%" y1="50%" x2="100%" y2="50%">
                       <stop offset="0%" stopColor="#7a9eb5" stopOpacity="0.5" />
                       <stop offset="100%" stopColor="#3d5566" stopOpacity="0.9" />
@@ -441,7 +446,11 @@ export function FilterVisualization(): React.JSX.Element {
                       <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.15" />
                       <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.55" />
                     </linearGradient>
-                    <linearGradient id="fv-water-out" x1="100%" y1="50%" x2="0%" y2="50%">
+                    <linearGradient id="fv-water-mid" x1="0%" y1="50%" x2="100%" y2="50%">
+                      <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.35" />
+                      <stop offset="100%" stopColor="#6ee7b7" stopOpacity="0.45" />
+                    </linearGradient>
+                    <linearGradient id="fv-water-out" x1="0%" y1="50%" x2="100%" y2="50%">
                       <stop offset="0%" stopColor="#6ee7b7" stopOpacity="0.2" />
                       <stop offset="100%" stopColor="#a5f3fc" stopOpacity="0.65" />
                     </linearGradient>
@@ -454,60 +463,94 @@ export function FilterVisualization(): React.JSX.Element {
                     </filter>
                   </defs>
 
+                  {/* Cylinder body — filtration zone (left) */}
                   <ellipse cx="108" cy="140" rx="22" ry="78" fill="url(#fv-cyl-cap)" stroke="#94a3b8" strokeOpacity="0.35" strokeWidth="1" />
                   <rect x="108" y="62" width="504" height="156" fill="url(#fv-cyl-body)" />
                   <path d="M108 62 Q360 42 612 62 L612 218 Q360 238 108 218 Z" fill="url(#fv-cyl-body)" opacity="0.92" />
+
+                  {/* Enrichment zone overlay (right portion of cylinder) */}
+                  {vm.enrichmentSummary?.enabled && (
+                    <>
+                      <rect x="440" y="62" width="172" height="156" fill="url(#fv-cyl-body-enrich)" opacity="0.88" />
+                      <path d="M440 62 Q530 48 612 62 L612 218 Q530 232 440 218 Z" fill="url(#fv-cyl-body-enrich)" opacity="0.85" />
+                    </>
+                  )}
+
                   <ellipse cx="612" cy="140" rx="22" ry="78" fill="url(#fv-cyl-cap)" stroke="#94a3b8" strokeOpacity="0.35" strokeWidth="1" />
 
-                  <rect x="358" y="58" width="4" height="164" fill="#e2e8f0" opacity="0.85" filter="url(#fv-glow)" />
-                  <rect x="356" y="56" width="8" height="168" fill="none" stroke="#f8fafc" strokeOpacity="0.25" strokeWidth="0.75" rx="1" />
+                  {/* Filtration membrane (shifted left at ~37% of cylinder) */}
+                  <rect x="264" y="58" width="4" height="164" fill="#e2e8f0" opacity="0.85" filter="url(#fv-glow)" />
+                  <rect x="262" y="56" width="8" height="168" fill="none" stroke="#f8fafc" strokeOpacity="0.25" strokeWidth="0.75" rx="1" />
 
+                  {/* Zone separator — dashed line between filtration output and enrichment zone */}
+                  {vm.enrichmentSummary?.enabled && (
+                    <line x1="438" y1="62" x2="438" y2="218"
+                      stroke="#6ee7b7" strokeOpacity="0.5" strokeWidth="1.5"
+                      strokeDasharray="6 7" />
+                  )}
+
+                  {/* Feed water flow: left edge → filtration membrane */}
                   <path
-                    d="M 40 155 C 120 155, 160 130, 200 128 C 260 125, 300 138, 356 138"
-                    fill="none"
-                    stroke="url(#fv-water-in)"
-                    strokeWidth="14"
-                    strokeLinecap="round"
-                    opacity="0.75"
+                    d="M 40 155 C 100 155, 140 135, 180 132 C 230 128, 255 138, 262 138"
+                    fill="none" stroke="url(#fv-water-in)" strokeWidth="13" strokeLinecap="round" opacity="0.75"
                   />
                   <path
-                    d="M 40 155 C 120 155, 160 130, 200 128 C 260 125, 300 138, 356 138"
-                    fill="none"
-                    stroke="#7dd3fc"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeDasharray="10 18"
-                    opacity="0.9"
+                    d="M 40 155 C 100 155, 140 135, 180 132 C 230 128, 255 138, 262 138"
+                    fill="none" stroke="#7dd3fc" strokeWidth="2" strokeLinecap="round"
+                    strokeDasharray="10 18" opacity="0.9"
                   >
-                    <animate attributeName="stroke-dashoffset" from="0" to="-280" dur="2.4s" repeatCount="indefinite" />
+                    <animate attributeName="stroke-dashoffset" from="0" to="-260" dur="2.2s" repeatCount="indefinite" />
                   </path>
 
+                  {/* Filtered water flow: membrane → zone separator (or right edge if no enrichment) */}
                   <path
-                    d="M 364 138 C 420 138, 480 125, 540 128 C 580 130, 640 148, 688 152"
-                    fill="none"
-                    stroke="url(#fv-water-out)"
-                    strokeWidth="12"
-                    strokeLinecap="round"
-                    opacity="0.7"
+                    d={vm.enrichmentSummary?.enabled
+                      ? "M 268 138 C 330 138, 390 128, 436 130"
+                      : "M 268 138 C 360 138, 480 125, 560 128 C 600 130, 650 148, 688 152"}
+                    fill="none" stroke="url(#fv-water-mid)" strokeWidth="11" strokeLinecap="round" opacity="0.7"
                   />
                   <path
-                    d="M 364 138 C 420 138, 480 125, 540 128 C 580 130, 640 148, 688 152"
-                    fill="none"
-                    stroke="#a5f3fc"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeDasharray="8 16"
-                    opacity="0.85"
+                    d={vm.enrichmentSummary?.enabled
+                      ? "M 268 138 C 330 138, 390 128, 436 130"
+                      : "M 268 138 C 360 138, 480 125, 560 128 C 600 130, 650 148, 688 152"}
+                    fill="none" stroke="#a5f3fc" strokeWidth="1.8" strokeLinecap="round"
+                    strokeDasharray="8 16" opacity="0.85"
                   >
-                    <animate attributeName="stroke-dashoffset" from="0" to="-240" dur="2.1s" repeatCount="indefinite" />
+                    <animate attributeName="stroke-dashoffset" from="0" to="-220" dur="2.0s" repeatCount="indefinite" />
                   </path>
+
+                  {/* Enriched water flow: enrichment zone → right edge */}
+                  {vm.enrichmentSummary?.enabled && (
+                    <>
+                      <path
+                        d="M 440 130 C 490 128, 540 135, 580 138 C 620 142, 660 150, 688 152"
+                        fill="none" stroke="url(#fv-water-out)" strokeWidth="12" strokeLinecap="round" opacity="0.72"
+                      />
+                      <path
+                        d="M 440 130 C 490 128, 540 135, 580 138 C 620 142, 660 150, 688 152"
+                        fill="none" stroke="#6ee7b7" strokeWidth="2" strokeLinecap="round"
+                        strokeDasharray="8 14" opacity="0.9"
+                      >
+                        <animate attributeName="stroke-dashoffset" from="0" to="-200" dur="1.8s" repeatCount="indefinite" />
+                      </path>
+                    </>
+                  )}
+
+                  {/* Zone labels */}
+                  <text x="160" y="54" textAnchor="middle" fontSize="10" fill="#94a3b8" fillOpacity="0.7" fontFamily="ui-monospace, monospace">FEED WATER</text>
+                  <text x="350" y="54" textAnchor="middle" fontSize="10" fill="#7dd3fc" fillOpacity="0.75" fontFamily="ui-monospace, monospace">FILTRATION</text>
+                  {vm.enrichmentSummary?.enabled && (
+                    <text x="526" y="54" textAnchor="middle" fontSize="10" fill="#6ee7b7" fillOpacity="0.8" fontFamily="ui-monospace, monospace">ENRICHMENT</text>
+                  )}
 
                   <ellipse cx="360" cy="72" rx="200" ry="14" fill="none" stroke="#64748b" strokeOpacity="0.25" strokeWidth="1" />
                   <ellipse cx="360" cy="208" rx="200" ry="14" fill="none" stroke="#0f172a" strokeOpacity="0.5" strokeWidth="1" />
                 </svg>
               </div>
               <div className="absolute bottom-3 left-3 rounded bg-black/45 px-2 py-1 text-[11px] text-slate-200">
-                Scope: feed water (left) - membrane - permeate (right)
+                {vm.enrichmentSummary?.enabled
+                  ? 'Scope: feed water → filtration membrane → enrichment zone → enriched output'
+                  : 'Scope: feed water (left) — filtration membrane — permeate (right)'}
               </div>
             </div>
           </div>
@@ -679,6 +722,35 @@ export function FilterVisualization(): React.JSX.Element {
               <p>No atomic composition available.</p>
             )}
           </div>
+
+          {vm.enrichmentMinerals.length > 0 && (
+            <>
+              <div className="my-4 border-t border-border" />
+              <h3 className="mb-2 text-sm font-semibold text-emerald-400">Enrichment Layers</h3>
+              <div className="space-y-2 text-sm">
+                {vm.enrichmentMinerals.map((em) => (
+                  <div key={em.mineral.key} className="rounded-[6px] border border-border p-2">
+                    <div className="mb-1 flex items-center gap-2">
+                      <span
+                        className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: em.mineral.color }}
+                      />
+                      <span className="font-medium text-foreground">{em.mineral.symbol} — {em.mineral.label}</span>
+                    </div>
+                    <div className="space-y-0.5 pl-4 text-xs text-muted-foreground">
+                      <p>Target: <span className="font-mono text-foreground">{em.targetConcentration ?? em.mineral.target}</span></p>
+                      {em.releaseRate != null && (
+                        <p>Release rate: <span className="font-mono text-foreground">{em.releaseRate.toFixed(1)}%</span></p>
+                      )}
+                      {em.layerThickness != null && (
+                        <p>Layer: <span className="font-mono text-foreground">{em.layerThickness.toFixed(3)} nm</span></p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           {(filterStructure || experimentPayload || resultPayload) ? (
             <>

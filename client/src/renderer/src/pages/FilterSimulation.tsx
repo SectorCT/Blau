@@ -39,7 +39,10 @@ export function FilterSimulation(): React.JSX.Element {
     totalSpawned: 0,
     totalPassed: 0,
     totalContaminantsSpawned: 0,
-    capturedByType: {}
+    capturedByType: {},
+    mineralsByType: {},
+    mineralConcentrationByType: {},
+    mineralCoverageRatio: 0
   })
 
   useEffect(() => {
@@ -157,7 +160,9 @@ export function FilterSimulation(): React.JSX.Element {
       if (frameCount % 10 === 0) {
         setStats({
           ...engine.stats,
-          capturedByType: { ...engine.stats.capturedByType }
+          capturedByType: { ...engine.stats.capturedByType },
+          mineralsByType: { ...engine.stats.mineralsByType },
+          mineralConcentrationByType: { ...engine.stats.mineralConcentrationByType }
         })
       }
       rafRef.current = requestAnimationFrame(loop)
@@ -185,7 +190,10 @@ export function FilterSimulation(): React.JSX.Element {
     const engine = engineRef.current
     if (engine) {
       engine.reset()
-      setStats({ totalSpawned: 0, totalPassed: 0, totalContaminantsSpawned: 0, capturedByType: {} })
+      setStats({
+        totalSpawned: 0, totalPassed: 0, totalContaminantsSpawned: 0, capturedByType: {},
+        mineralsByType: {}, mineralConcentrationByType: {}, mineralCoverageRatio: 0
+      })
     }
   }
 
@@ -349,23 +357,26 @@ export function FilterSimulation(): React.JSX.Element {
 
           <h3 className="mb-2 text-sm font-semibold">Captured by Type</h3>
           <div className="space-y-1.5">
-            {moleculeTypes.filter((m) => m.filterable).map((m) => (
-              <div key={m.code} className="flex items-center gap-2 text-sm">
-                <span
-                  className="inline-block h-3 w-3 shrink-0 rounded-full"
-                  style={{ backgroundColor: m.color }}
-                />
-                <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                  {m.name}
-                  <span className="ml-1 font-mono text-[10px] text-muted-foreground/80">
-                    ({Math.round(simConfig.removalEfficiency)}% tgt)
+            {moleculeTypes.filter((m) => m.filterable).map((m) => {
+              const tgt = m.captureEfficiency ?? simConfig.removalEfficiency
+              return (
+                <div key={m.code} className="flex items-center gap-2 text-sm">
+                  <span
+                    className="inline-block h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: m.color }}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                    {m.name}
+                    <span className="ml-1 font-mono text-[10px] text-muted-foreground/80">
+                      ({Math.round(tgt)}% tgt)
+                    </span>
                   </span>
-                </span>
-                <span className="font-mono text-xs">
-                  {stats.capturedByType[m.code] ?? 0}
-                </span>
-              </div>
-            ))}
+                  <span className="font-mono text-xs">
+                    {stats.capturedByType[m.code] ?? 0}
+                  </span>
+                </div>
+              )
+            })}
           </div>
 
           <div className="my-3 border-t border-border" />
@@ -387,6 +398,63 @@ export function FilterSimulation(): React.JSX.Element {
               </div>
             ))}
           </div>
+
+          {(simConfig.enrichmentMinerals?.length ?? 0) > 0 && (
+            <>
+              <div className="my-3 border-t border-border" />
+              <h2 className="mb-3 text-sm font-semibold text-emerald-400">Enrichment</h2>
+              <div className="mb-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Target coverage</span>
+                  <span className="font-mono font-semibold text-emerald-400">
+                    {Math.round(stats.mineralCoverageRatio * 100)}%
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {(simConfig.enrichmentMinerals ?? []).map((em) => {
+                  const conc = stats.mineralConcentrationByType[em.mineral.key] ?? 0
+                  const inRange = conc >= em.targetMin && conc <= em.targetMax
+                  const isUgL = em.unit === 'µg/L'
+                  const displayConc = isUgL ? conc * 1000 : conc
+                  const dMin = isUgL ? em.targetMin * 1000 : em.targetMin
+                  const dMax = isUgL ? em.targetMax * 1000 : em.targetMax
+                  const fmt = (n: number): string =>
+                    n >= 1 ? (n % 1 === 0 ? String(n) : n.toFixed(1)) : n.toFixed(2)
+                  const targetStr = `${fmt(dMin)}-${fmt(dMax)} ${em.unit}`
+                  return (
+                    <div key={em.mineral.key} className="rounded-[6px] border border-border p-2 text-sm">
+                      <div className="mb-1 flex items-center gap-2">
+                        <span
+                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: em.mineral.color }}
+                        />
+                        <span className="font-medium">{em.mineral.symbol} — {em.mineral.label}</span>
+                      </div>
+                      <div className="space-y-0.5 pl-4 text-xs text-muted-foreground">
+                        <div className="flex justify-between">
+                          <span>Concentration</span>
+                          <span className={`font-mono ${inRange ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {displayConc.toFixed(3)} {em.unit}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Target</span>
+                          <span className="font-mono text-foreground">{targetStr}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Released</span>
+                          <span className="font-mono text-foreground">
+                            {stats.mineralsByType[em.mineral.key] ?? 0}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </aside>
       </div>
     </div>

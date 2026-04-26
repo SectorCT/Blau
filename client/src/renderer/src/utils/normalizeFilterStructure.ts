@@ -100,7 +100,11 @@ function averageLayerNumericField(
   info: FilterInfo | null | undefined,
   key: LayerAverageKey
 ): number | null {
-  const layers = getFilterLayers(info)
+  // Exclude enrichment layers — they carry mode-specific values (e.g. removalEfficiency=0)
+  // that are meaningless for filtration metrics and would dilute the averages.
+  const layers = getFilterLayers(info).filter(
+    (row) => typeof row.mode !== 'string' || row.mode.toLowerCase() !== 'enrichment'
+  )
   const values: number[] = []
   for (const row of layers) {
     const v = row[key]
