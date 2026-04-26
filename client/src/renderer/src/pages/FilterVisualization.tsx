@@ -104,7 +104,6 @@ export function FilterVisualization(): React.JSX.Element {
   const [filterInfo, setFilterInfo] = useState<FilterInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadedFromName, setLoadedFromName] = useState<string | null>(null)
-  const [zoomTransition, setZoomTransition] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -197,9 +196,6 @@ export function FilterVisualization(): React.JSX.Element {
     () => (hasExplicitConnections ? rawXyz : downsampleXyz(rawXyz, 500)),
     [rawXyz, hasExplicitConnections]
   )
-  useEffect(() => {
-    setZoomTransition(0)
-  }, [xyz])
   const atomCount = useMemo(() => Number(xyz.split('\n')[0] ?? 0), [xyz])
   const isDownsampled = rawAtomCount > atomCount
   const modelAtoms = useMemo(() => {
@@ -342,24 +338,6 @@ export function FilterVisualization(): React.JSX.Element {
     resetSelection()
   }
 
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container || loading) return
-
-    const onWheel = (event: WheelEvent): void => {
-      const direction = Math.sign(event.deltaY)
-      if (direction === 0) return
-      // Positive deltaY = zoom out (pull back) in 3Dmol; negative = zoom in.
-      // Scope / cylinder view should strengthen on zoom out, fade on zoom in.
-      setZoomTransition((prev) => Math.min(1, Math.max(0, prev + direction * 0.07)))
-    }
-
-    container.addEventListener('wheel', onWheel, { passive: true })
-    return () => {
-      container.removeEventListener('wheel', onWheel)
-    }
-  }, [loading])
-
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden p-4 md:p-6 lg:p-8">
       <Breadcrumbs />
@@ -403,113 +381,7 @@ export function FilterVisualization(): React.JSX.Element {
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="flex min-h-0 flex-col gap-4 overflow-hidden">
           <div className="relative min-h-0 flex-1 overflow-hidden rounded-[8px] bg-black">
-            <div
-              ref={containerRef}
-              className="absolute inset-0 transition-opacity duration-500"
-              style={{ opacity: Math.max(0.2, 1 - zoomTransition * 0.78) }}
-              onClick={handleViewerClick}
-            />
-            <div
-              className="pointer-events-none absolute inset-0 transition-opacity duration-500"
-              style={{ opacity: zoomTransition }}
-            >
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    'radial-gradient(ellipse 85% 55% at 50% 48%, rgba(120,200,255,0.12), rgba(6,14,24,0.95) 55%, rgba(2,6,12,1))'
-                }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center p-6">
-                <svg
-                  className="h-full max-h-[min(420px,55vh)] w-full max-w-[min(720px,92%)]"
-                  viewBox="0 0 720 280"
-                  preserveAspectRatio="xMidYMid meet"
-                  aria-hidden
-                >
-                  <defs>
-                    <linearGradient id="fv-cyl-body" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#5a7a8e" stopOpacity="0.95" />
-                      <stop offset="45%" stopColor="#2d4150" stopOpacity="1" />
-                      <stop offset="100%" stopColor="#1a2833" stopOpacity="1" />
-                    </linearGradient>
-                    <linearGradient id="fv-cyl-cap" x1="0%" y1="50%" x2="100%" y2="50%">
-                      <stop offset="0%" stopColor="#7a9eb5" stopOpacity="0.5" />
-                      <stop offset="100%" stopColor="#3d5566" stopOpacity="0.9" />
-                    </linearGradient>
-                    <linearGradient id="fv-water-in" x1="0%" y1="50%" x2="100%" y2="50%">
-                      <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.15" />
-                      <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.55" />
-                    </linearGradient>
-                    <linearGradient id="fv-water-out" x1="100%" y1="50%" x2="0%" y2="50%">
-                      <stop offset="0%" stopColor="#6ee7b7" stopOpacity="0.2" />
-                      <stop offset="100%" stopColor="#a5f3fc" stopOpacity="0.65" />
-                    </linearGradient>
-                    <filter id="fv-glow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="2.2" result="b" />
-                      <feMerge>
-                        <feMergeNode in="b" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
-
-                  <ellipse cx="108" cy="140" rx="22" ry="78" fill="url(#fv-cyl-cap)" stroke="#94a3b8" strokeOpacity="0.35" strokeWidth="1" />
-                  <rect x="108" y="62" width="504" height="156" fill="url(#fv-cyl-body)" />
-                  <path d="M108 62 Q360 42 612 62 L612 218 Q360 238 108 218 Z" fill="url(#fv-cyl-body)" opacity="0.92" />
-                  <ellipse cx="612" cy="140" rx="22" ry="78" fill="url(#fv-cyl-cap)" stroke="#94a3b8" strokeOpacity="0.35" strokeWidth="1" />
-
-                  <rect x="358" y="58" width="4" height="164" fill="#e2e8f0" opacity="0.85" filter="url(#fv-glow)" />
-                  <rect x="356" y="56" width="8" height="168" fill="none" stroke="#f8fafc" strokeOpacity="0.25" strokeWidth="0.75" rx="1" />
-
-                  <path
-                    d="M 40 155 C 120 155, 160 130, 200 128 C 260 125, 300 138, 356 138"
-                    fill="none"
-                    stroke="url(#fv-water-in)"
-                    strokeWidth="14"
-                    strokeLinecap="round"
-                    opacity="0.75"
-                  />
-                  <path
-                    d="M 40 155 C 120 155, 160 130, 200 128 C 260 125, 300 138, 356 138"
-                    fill="none"
-                    stroke="#7dd3fc"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeDasharray="10 18"
-                    opacity="0.9"
-                  >
-                    <animate attributeName="stroke-dashoffset" from="0" to="-280" dur="2.4s" repeatCount="indefinite" />
-                  </path>
-
-                  <path
-                    d="M 364 138 C 420 138, 480 125, 540 128 C 580 130, 640 148, 688 152"
-                    fill="none"
-                    stroke="url(#fv-water-out)"
-                    strokeWidth="12"
-                    strokeLinecap="round"
-                    opacity="0.7"
-                  />
-                  <path
-                    d="M 364 138 C 420 138, 480 125, 540 128 C 580 130, 640 148, 688 152"
-                    fill="none"
-                    stroke="#a5f3fc"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeDasharray="8 16"
-                    opacity="0.85"
-                  >
-                    <animate attributeName="stroke-dashoffset" from="0" to="-240" dur="2.1s" repeatCount="indefinite" />
-                  </path>
-
-                  <ellipse cx="360" cy="72" rx="200" ry="14" fill="none" stroke="#64748b" strokeOpacity="0.25" strokeWidth="1" />
-                  <ellipse cx="360" cy="208" rx="200" ry="14" fill="none" stroke="#0f172a" strokeOpacity="0.5" strokeWidth="1" />
-                </svg>
-              </div>
-              <div className="absolute bottom-3 left-3 rounded bg-black/45 px-2 py-1 text-[11px] text-slate-200">
-                Scope: feed water (left) - membrane - permeate (right)
-              </div>
-            </div>
+            <div ref={containerRef} className="absolute inset-0" onClick={handleViewerClick} />
           </div>
           <div className="h-36 shrink-0 overflow-y-auto rounded-[8px] border border-border bg-card p-4">
             <h2 className="mb-2 text-sm font-semibold">Structure Description</h2>

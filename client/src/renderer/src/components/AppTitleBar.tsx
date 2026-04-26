@@ -17,6 +17,9 @@ type SearchResult = {
   score: number
 }
 
+const BLAU_ICON_SRC = `${import.meta.env.BASE_URL}blauicontransparent-cropped.png`
+const DEFAULT_THEME: ThemeName = 'ocean'
+
 function normalizeList<T>(payload: { results?: T[] } | T[]): T[] {
   if (Array.isArray(payload)) return payload
   return Array.isArray(payload.results) ? payload.results : []
@@ -41,10 +44,10 @@ export function AppTitleBar(): React.JSX.Element {
     return window.localStorage.getItem('blau-theme-dark') === '1'
   })
   const [theme, setTheme] = useState<ThemeName>(() => {
-    if (typeof window === 'undefined') return 'default'
+    if (typeof window === 'undefined') return DEFAULT_THEME
     const saved = window.localStorage.getItem('blau-theme-name')
     if (saved === 'ocean' || saved === 'sky' || saved === 'default') return saved
-    return 'default'
+    return DEFAULT_THEME
   })
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -253,9 +256,12 @@ export function AppTitleBar(): React.JSX.Element {
   return (
     <header className="drag-region flex h-12 items-center justify-between border-b border-border bg-card/90 px-3 backdrop-blur">
       <div className="no-drag flex items-center gap-2">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-secondary text-xs font-semibold">
-          B
-        </div>
+        <img
+          src={BLAU_ICON_SRC}
+          alt="Blau icon"
+          className="h-7 w-7 shrink-0 rounded-[6px] object-contain"
+          draggable={false}
+        />
         <span className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline">
           Blau
         </span>

@@ -151,12 +151,12 @@ main,
 .brand-mark {
   width: 2rem;
   height: 2rem;
-  border-radius: 0.6rem;
-  background: linear-gradient(140deg, #2f86c8 0%, #73c2f6 100%);
-  color: white;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
+  border-radius: 0.55rem;
+  object-fit: contain;
+  background: linear-gradient(140deg, #e8f5ff 0%, #c8e6fa 100%);
+  border: 1px solid rgba(184, 219, 242, 0.7);
+  padding: 3px;
+  flex-shrink: 0;
 }
 
 .brand-title {

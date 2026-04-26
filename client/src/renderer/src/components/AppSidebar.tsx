@@ -11,14 +11,24 @@ const navItems = [
   { to: '/add-measurement', label: 'New Measurement', icon: Plus }
 ]
 
+const BLAU_ICON_SRC = `${import.meta.env.BASE_URL}blauicontransparent-cropped.png`
+
 export function AppSidebar(): React.JSX.Element {
   const navigate = useNavigate()
 
   return (
     <aside className="flex w-14 shrink-0 flex-col border-r border-border bg-card md:w-56">
       <div className="flex h-14 items-center justify-center border-b border-border px-2 md:justify-between md:px-4">
-        <h2 className="hidden text-base font-semibold tracking-tight md:block">Blau</h2>
-        <h2 className="text-sm font-semibold tracking-tight md:hidden">Blau</h2>
+        <div className="flex items-center gap-2">
+          <img
+            src={BLAU_ICON_SRC}
+            alt="Blau icon"
+            className="h-5 w-5 shrink-0 object-contain"
+            draggable={false}
+          />
+          <h2 className="hidden text-base font-semibold tracking-tight md:block">Blau</h2>
+          <h2 className="text-sm font-semibold tracking-tight md:hidden">Blau</h2>
+        </div>
         <span className="hidden rounded-sm bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground md:inline-flex">
           v1.0
         </span>

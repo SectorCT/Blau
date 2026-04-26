@@ -4,7 +4,13 @@ function Topbar() {
   return (
     <header className="topbar">
       <a className="brand" href="#top" aria-label="Blau home">
-        <div className="brand-mark" aria-hidden="true">B</div>
+        <img
+          className="brand-mark"
+          src="/blauicontransparent-cropped.png"
+          alt=""
+          width={32}
+          height={32}
+        />
         <div>
           <p className="brand-title">Blau</p>
           <p className="brand-subtitle">Water Quality Analysis Platform</p>
