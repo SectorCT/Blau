@@ -30,16 +30,40 @@ function QuantumSpotlight() {
             </li>
           </ul>
         </div>
-        <figure className="spotlight-figure" data-fallback="IBM Quantum console">
-          <img
-            src="/screenshots/ibm-console.png"
-            alt="IBM Quantum console showing a Blau VQE job"
-            width={1600}
-            height={1000}
-            loading="lazy"
-          />
-          <figcaption>VQE job on IBM&nbsp;Quantum hardware — not a simulator.</figcaption>
-        </figure>
+
+        <div className="vqe-terminal" aria-label="VQE job output on IBM Quantum">
+          <div className="vqe-terminal-bar">
+            <div className="vqe-terminal-dot" style={{ background: '#ef4444' }} />
+            <div className="vqe-terminal-dot" style={{ background: '#f59e0b' }} />
+            <div className="vqe-terminal-dot" style={{ background: '#22c55e' }} />
+            <span>blau · run_quantum.py · ibm_sherbrooke</span>
+          </div>
+          <div className="vqe-terminal-body">
+            <div>
+              <span className="t-comment">$ </span>
+              <span className="t-dim">python run_quantum.py --filter 3587ef2a --pollutant ca_ion</span>
+            </div>
+            <div className="t-divider">{'─'.repeat(46)}</div>
+            <div><span className="t-label">Ansatz   </span><span className="t-key">UCCSD</span>  <span className="t-dim">active space 4e / 4o</span></div>
+            <div><span className="t-label">Qubits   </span><span className="t-val">4</span></div>
+            <div><span className="t-label">Shots    </span><span className="t-val">1024</span></div>
+            <div><span className="t-label">Backend  </span><span className="t-str">ibm_sherbrooke</span></div>
+            <div><span className="t-label">Depth    </span><span className="t-val">12</span>  <span className="t-dim">layers</span></div>
+            <div>&nbsp;</div>
+            <div><span className="t-dim">Computing E(filter + Ca²⁺)…</span>  <span className="t-success">done  1.8 s</span></div>
+            <div><span className="t-dim">Computing E(filter)………………</span>  <span className="t-success">done  1.6 s</span></div>
+            <div><span className="t-dim">Computing E(Ca²⁺)……………………</span>  <span className="t-success">done  0.9 s</span></div>
+            <div>&nbsp;</div>
+            <div className="t-divider">{'─'.repeat(46)}</div>
+            <div><span className="t-label">E_HF baseline </span><span className="t-dim">−0.6512 eV</span></div>
+            <div><span className="t-label">E_VQE         </span><span className="t-result">−0.6683 eV  ← quantum</span></div>
+            <div><span className="t-label">ΔE (VQE−HF)   </span><span className="t-key">−0.0171 eV</span></div>
+            <div>&nbsp;</div>
+            <div><span className="t-label">Job ID   </span><span className="t-dim">crv8qz3a4p7f</span></div>
+            <div><span className="t-label">Wall time </span><span className="t-val">4.3 s</span></div>
+            <div><span className="t-label">Status   </span><span className="t-success">DONE</span></div>
+          </div>
+        </div>
       </div>
     </section>
   )

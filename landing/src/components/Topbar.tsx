@@ -1,4 +1,4 @@
-import { REPO_URL, DEVPOST_URL } from '../constants'
+import { REPO_URL, DEVPOST_URL, DOWNLOAD_URL } from '../constants'
 
 function Topbar() {
   return (
@@ -21,11 +21,15 @@ function Topbar() {
         <a href="#pipeline">Pipeline</a>
         <a href="#quantum">IBM Quantum</a>
         <a href="#hardware">Hardware</a>
+        <a href="#gallery">Screenshots</a>
         <a className="ghost-link" href={DEVPOST_URL} target="_blank" rel="noreferrer">
           Devpost
         </a>
         <a className="ghost-link" href={REPO_URL} target="_blank" rel="noreferrer">
           GitHub
+        </a>
+        <a className="cta cta-primary topbar-download" href={DOWNLOAD_URL} download>
+          ↓ Download
         </a>
       </nav>
     </header>

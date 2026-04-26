@@ -1,5 +1,5 @@
 export const ENRICHMENT_MINERALS = [
-    { key: 'calcium', label: 'Calcium (Ca2+)', symbol: 'Ca²⁺', element: 'Ca', target: '40-80 mg/L', color: '#7dd3fc' },
+    { key: 'calcium', label: 'Calcium (Ca2+)', symbol: 'Ca²⁺', element: 'Ca', target: '20-80 mg/L', color: '#7dd3fc' },
     { key: 'magnesium', label: 'Magnesium (Mg2+)', symbol: 'Mg²⁺', element: 'Mg', target: '10-30 mg/L', color: '#a78bfa' },
     { key: 'potassium', label: 'Potassium (K+)', symbol: 'K⁺', element: 'K', target: '1-12 mg/L', color: '#facc15' },
     { key: 'zinc', label: 'Zinc (Zn2+)', symbol: 'Zn²⁺', element: 'Zn', target: '0.5-3 mg/L', color: '#f472b6' },

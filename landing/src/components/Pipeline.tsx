@@ -43,17 +43,17 @@ function Pipeline() {
           </li>
         ))}
       </ol>
-      <figure className="inline-figure" data-fallback="FilterAnalysis chart">
+      <figure className="inline-figure">
         <img
-          src="/screenshots/filter-analysis.png"
-          alt="Per-pollutant removal-efficiency chart with method tags"
+          src="/screenshots/filter-details.png"
+          alt="Filter details panel — per-layer composition with HF, VQE, empirical, and proxied method tags"
           width={1600}
-          height={900}
+          height={1000}
           loading="lazy"
         />
         <figcaption>
-          Every result is tagged with the level of theory that produced it (HF / VQE / empirical /
-          proxied). Provenance is the most important UX decision in the app.
+          Every layer is tagged with the level of theory that produced it — HF, VQE, empirical, or
+          proxied. Provenance is the most important UX decision in the app.
         </figcaption>
       </figure>
     </section>

@@ -104,6 +104,7 @@ export function FilterVisualization(): React.JSX.Element {
   const [filterInfo, setFilterInfo] = useState<FilterInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadedFromName, setLoadedFromName] = useState<string | null>(null)
+  const [zoomTransition] = useState(0)
 
   useEffect(() => {
     let cancelled = false

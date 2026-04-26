@@ -84,7 +84,9 @@ export function getFilterLayers(info) {
     return structLayers.filter(isPollutantLayerRowLike);
 }
 function averageLayerNumericField(info, key) {
-    const layers = getFilterLayers(info);
+    const layers = getFilterLayers(info).filter(
+        (row) => typeof row.mode !== 'string' || row.mode.toLowerCase() !== 'enrichment'
+    );
     const values = [];
     for (const row of layers) {
         const v = row[key];

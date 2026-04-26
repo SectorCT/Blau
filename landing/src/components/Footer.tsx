@@ -1,4 +1,4 @@
-import { REPO_URL, DEVPOST_URL } from '../constants'
+import { REPO_URL, DEVPOST_URL, DOWNLOAD_URL } from '../constants'
 
 function Footer() {
   return (
@@ -9,11 +9,13 @@ function Footer() {
           <p className="footer-line">Water Quality Analysis Platform · HackUPC&nbsp;2026</p>
         </div>
         <nav className="footer-links" aria-label="Footer">
+          <a href={DOWNLOAD_URL} download>↓ Download for Windows</a>
           <a href={REPO_URL} target="_blank" rel="noreferrer">GitHub</a>
           <a href={DEVPOST_URL} target="_blank" rel="noreferrer">Devpost</a>
           <a href="#problem">Problem</a>
           <a href="#quantum">IBM Quantum</a>
           <a href="#hardware">Hardware</a>
+          <a href="#gallery">Screenshots</a>
         </nav>
         <div>
           <p className="footer-line">
