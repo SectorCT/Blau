@@ -1,31 +1,60 @@
-# Blau 
+# Blau
 
-Desktop and web tooling for water-quality measurements, studies, and AI-driven nano-filter design. The system uses **quantum chemistry simulation** (Hartree-Fock and Variational Quantum Eigensolver) combined with **genetic algorithm optimization** to generate filter designs that maximize pollutant-binding energy for measured water conditions.
+Blau is a research platform for water-purification scientists. It turns water-quality measurements into candidate nano-filter designs using a genetic algorithm search and first-principles quantum chemistry scoring (Hartree-Fock and optional VQE on IBM Quantum hardware).
 
-The backend is a Django REST API backed by PostgreSQL; long-running filter simulations run in a separate FastAPI **core** service. The desktop app is an Electron + React client that talks only to the API, not to core directly.
+The backend is a Django REST API backed by PostgreSQL; long-running filter simulations run in a separate FastAPI core service. The desktop app is an Electron + React client that talks only to the API, not to core directly.
 
 More product and API contract detail lives under [docs/](docs/README.md) (PRD, user stories, contracts).
 
+## Why Blau
+
+Water-purification researchers often spend weeks iterating on filter designs:
+
+1. Propose a molecular lattice.
+2. Run computational chemistry.
+3. Evaluate binding energy.
+4. Adjust design and repeat.
+
+Blau shortens this loop by combining pollutant mapping, evolutionary design search, and quantum-chemistry scoring in one workflow with full method provenance.
+
+## What Blau does
+
+At a high level:
+
+1. Load a water sample and select pollutants of interest.
+2. Generate candidate filter structures through a DEAP genetic algorithm.
+3. Score candidates using binding energy calculations:
+  - Hartree-Fock baseline (PySCF)
+  - Optional VQE refinement (PennyLane + qiskit-ibm-runtime)
+4. Return a best candidate with 3D structure and per-pollutant performance.
+5. Export structures/results for downstream lab or simulation work (CSV, XYZ, SDF).
+
+This is scientific computing, not an ML model pipeline: no training data is required at runtime.
+
 ## Tech stack
 
-| Component | Technologies |
-|-----------|-------------|
-| **Core (simulation)** | FastAPI, PySCF (Hartree-Fock), PennyLane + Qiskit (VQE), DEAP (genetic algorithms), SQLite |
-| **Backend** | Django, Django REST Framework, Celery, Redis, PostgreSQL, JWT |
-| **Desktop client** | Electron, React 19, TypeScript, Vite, Tailwind CSS, Leaflet (maps), Recharts, 3Dmol.js (molecular viewer), serialport (USB devices) |
-| **Landing page** | Vite + React, Tailwind CSS |
-| **Infrastructure** | Docker Compose, PostgreSQL 16, Redis 7 |
+
+| Component             | Technologies                                                                                                                        |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Core (simulation)** | FastAPI, PySCF (Hartree-Fock), PennyLane + Qiskit (VQE), DEAP (genetic algorithms), SQLite                                          |
+| **Backend**           | Django, Django REST Framework, Celery, Redis, PostgreSQL, JWT                                                                       |
+| **Desktop client**    | Electron, React 19, TypeScript, Vite, Tailwind CSS, Leaflet (maps), Recharts, 3Dmol.js (molecular viewer), serialport (USB devices) |
+| **Landing page**      | Vite + React, Tailwind CSS                                                                                                          |
+| **Infrastructure**    | Docker Compose, PostgreSQL 16, Redis 7                                                                                              |
+
 
 ## Repository layout
 
-| Path | Role |
-|------|------|
-| [core/](core/) | FastAPI simulation engine (H2O-Sim): `/health`, `/filters/*`. Runs quantum chemistry (PySCF + PennyLane VQE) and genetic algorithm optimization (DEAP). Uses SQLite on a Docker volume (`DB_PATH=/data/h2osim.db`) and a process pool for heavy work. |
-| [server/backend/](server/backend/) | Django REST API, Celery tasks, and app code. In Compose, `./server/backend` is mounted at `/home/app/backend` in the `web` and `worker` containers. |
-| [server/](server/) | Docker image build, `requirements.txt`, and `env.example` for backend configuration. |
-| [client/](client/) | Electron + Vite + React. API calls use `VITE_API_BASE_URL`; request paths include `/api/...` (see [client/src/renderer/src/utils/api/config.ts](client/src/renderer/src/utils/api/config.ts)). |
-| [landingpage/](landingpage/) | Optional Vite + React marketing site; not wired into `docker-compose.yml`. Run locally with `npm install` and `npm run dev`. |
-| [docs/](docs/) | Product and flow documentation. |
+
+| Path                               | Role                                                                                                                                                                                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [core/](core/)                     | FastAPI simulation engine (H2O-Sim): `/health`, `/filters/`*. Runs quantum chemistry (PySCF + PennyLane VQE) and genetic algorithm optimization (DEAP). Uses SQLite on a Docker volume (`DB_PATH=/data/h2osim.db`) and a process pool for heavy work. |
+| [server/backend/](server/backend/) | Django REST API, Celery tasks, and app code. In Compose, `./server/backend` is mounted at `/home/app/backend` in the `web` and `worker` containers.                                                                                                   |
+| [server/](server/)                 | Docker image build, `requirements.txt`, and `env.example` for backend configuration.                                                                                                                                                                  |
+| [client/](client/)                 | Electron + Vite + React. API calls use `VITE_API_BASE_URL`; request paths include `/api/...` (see [client/src/renderer/src/utils/api/config.ts](client/src/renderer/src/utils/api/config.ts)).                                                        |
+| [landingpage/](landingpage/)       | Optional Vite + React marketing site; not wired into `docker-compose.yml`. Run locally with `npm install` and `npm run dev`.                                                                                                                          |
+| [docs/](docs/)                     | Product and flow documentation.                                                                                                                                                                                                                       |
+
 
 ## Architecture and how services communicate
 
@@ -51,6 +80,8 @@ flowchart LR
   Core --> SQLite
 ```
 
+
+
 - **Electron client -> Django `web`:** JWT-authenticated JSON over HTTP (e.g. `http://localhost:8000` from the host). The desktop app **does not** call the core service; only the backend worker does.
 - **Django `web` -> PostgreSQL and Redis:** Reads and writes application data; enqueues Celery jobs (for example filter generation).
 - **Celery `worker` -> PostgreSQL, Redis, and core:** Executes tasks and calls the simulation service at `CORE_SERVICE_URL` (default `http://core:8000` on the internal network). See [server/backend/filters/services/runner.py](server/backend/filters/services/runner.py) (`POST /filters/generate` and status polling).
@@ -62,15 +93,15 @@ When a user requests a filter for a water measurement, the system:
 
 1. **Pollutant mapping** — maps measured water parameters (Pb, Cd, Cl, NO3, etc.; 100+ supported) to atomic species for quantum simulation.
 2. **Genetic algorithm optimization** (DEAP) — evolves filter designs across 5 parameters:
-   - Pore size (0.3-2.0 nm)
-   - Layer thickness (0.5-5.0 nm)
-   - Material type (graphene, carbon nanotubes, graphene oxide, composite, MOF-like)
-   - Functionalization density
-   - Doping level (pyridinic nitrogen replacement)
+  - Pore size (0.3-2.0 nm)
+  - Layer thickness (0.5-5.0 nm)
+  - Material type (graphene, carbon nanotubes, graphene oxide, composite, MOF-like)
+  - Functionalization density
+  - Doping level (pyridinic nitrogen replacement)
 3. **Quantum chemistry evaluation** — for each candidate filter, computes pollutant-material binding energy:
-   - **Hartree-Fock** baseline via PySCF (STO-3G basis set)
-   - **VQE** refinement via PennyLane with UCCSD-style ansatz (when enabled)
-   - Optional execution on **IBM Quantum hardware** via Qiskit
+  - **Hartree-Fock** baseline via PySCF (STO-3G basis set)
+  - **VQE** refinement via PennyLane with UCCSD-style ansatz (when enabled)
+  - Optional execution on **IBM Quantum hardware** via Qiskit
 4. **Result** — the best filter design with per-layer binding energies, material composition, and atomic structure (exportable as CSV, XYZ, or SDF).
 
 The client displays results with interactive charts (Recharts), 3D molecular structure visualization (3Dmol.js), and per-pollutant performance metrics.
@@ -83,43 +114,41 @@ The client displays results with interactive charts (Recharts), 3D molecular str
 
 Python dependencies are installed inside the Docker images from [server/requirements.txt](server/requirements.txt) and [core/requirements.txt](core/requirements.txt). For local Python work outside Docker, use those files with a virtual environment.
 
-## Quick start: backend and core (Docker)
+## Run from source (no release required)
+
+You can run the full project locally from this repository even if no installer/release artifact exists.
+
+### 1) Start backend + worker + core (Docker)
 
 From the repository root:
 
 1. Copy the environment template and fill in secrets:
-
-   ```bash
+  ```bash
    cp server/env.example server/.env
-   ```
-
+  ```
    Set at minimum a strong `SECRET_KEY`, `DB_PASSWORD` / `POSTGRES_PASSWORD` (same value), and Google OAuth values if you use Google login. See [Environment variables](#environment-variables) below.
-
 2. Start all services:
-
-   ```bash
+  ```bash
    docker compose up --build
-   ```
-
+  ```
 3. **Ports (default [docker-compose.yml](docker-compose.yml)):**
 
-   | Service | Host port | Notes |
-   |---------|-----------|--------|
-   | Django API (`web`) | **8000** | REST API and `/api/health/` |
-   | Core (`core`) | **8001** | `/health` and `/filters/*` |
-   | PostgreSQL (`db`) | **5434** | Optional host access |
-   | Redis | *(none)* | Reachable only inside the Compose network |
+  | Service            | Host port | Notes                                     |
+  | ------------------ | --------- | ----------------------------------------- |
+  | Django API (`web`) | **8000**  | REST API and `/api/health/`               |
+  | Core (`core`)      | **8001**  | `/health` and `/filters/`*                |
+  | PostgreSQL (`db`)  | **5434**  | Optional host access                      |
+  | Redis              | *(none)*  | Reachable only inside the Compose network |
 
 4. Smoke checks:
-
-   - API: `GET http://localhost:8000/api/health/`
-   - Core: `GET http://localhost:8001/health`
+  - API: `GET http://localhost:8000/api/health/`
+  - Core: `GET http://localhost:8001/health`
 
 Optional: a separate benchmark-oriented compose file is [docker-compose.benchmark.yml](docker-compose.benchmark.yml) (different host ports for core/DB, and core tuned for benchmarking).
 
 After starting the stack, you can run [server/check_services.ps1](server/check_services.ps1) or [server/check_services.sh](server/check_services.sh) if you want scripted checks against local URLs.
 
-## Desktop client
+### 2) Run the desktop client (Electron + React)
 
 ```bash
 cd client
@@ -134,6 +163,16 @@ VITE_API_BASE_URL=http://localhost:8000
 ```
 
 The client builds request paths like `/api/auth/login/`; [client/src/renderer/src/utils/api/config.ts](client/src/renderer/src/utils/api/config.ts) accepts either a bare origin (`http://localhost:8000`) or a base URL ending in `/api`. Do not commit environment files that point to private or production APIs unless you intend to.
+
+### 3) (Optional) Run landing page
+
+```bash
+cd landingpage
+npm install
+npm run dev
+```
+
+If these three steps are running, you have a full local Blau environment with no release download needed.
 
 ### Serving the same client from Django (production / `Frontend not found`)
 
@@ -160,6 +199,8 @@ On the server (paths match `/home/app/backend` in Docker), the same copy targets
 
 ## Optional landing page
 
+If you only want the marketing site (without desktop app), run:
+
 ```bash
 cd landingpage
 npm install
@@ -172,55 +213,65 @@ The canonical template is [server/env.example](server/env.example). Docker Compo
 
 ### Required for a working Compose stack
 
-| Variable | Purpose |
-|----------|---------|
-| `SECRET_KEY` | Django signing; must be long and random when `DEBUG=False`. |
-| `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | Django database connection (`DB_HOST=db` and `DB_PORT=5432` inside Compose). |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Must match the database name, user, and password expected by Django (used by the PostgreSQL container). |
+
+| Variable                                                  | Purpose                                                                                                 |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `SECRET_KEY`                                              | Django signing; must be long and random when `DEBUG=False`.                                             |
+| `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | Django database connection (`DB_HOST=db` and `DB_PORT=5432` inside Compose).                            |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`       | Must match the database name, user, and password expected by Django (used by the PostgreSQL container). |
+
 
 ### Usually set in `env.example` / Compose overrides
 
-| Variable | Purpose |
-|----------|---------|
-| `DEBUG`, `ALLOWED_HOSTS`, `CORS_ALLOW_ALL_ORIGINS` | Dev vs production behavior and CORS. |
-| `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` | Redis URLs (`redis://redis:6379/0` in Compose). |
-| `CELERY_TASK_TIME_LIMIT`, `CELERY_TASK_SOFT_TIME_LIMIT` | Task timeouts (soft limit should stay below hard limit). |
-| `CORE_SERVICE_URL` | Base URL for the core service (`http://core:8000` inside Docker). |
+
+| Variable                                                | Purpose                                                           |
+| ------------------------------------------------------- | ----------------------------------------------------------------- |
+| `DEBUG`, `ALLOWED_HOSTS`, `CORS_ALLOW_ALL_ORIGINS`      | Dev vs production behavior and CORS.                              |
+| `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`            | Redis URLs (`redis://redis:6379/0` in Compose).                   |
+| `CELERY_TASK_TIME_LIMIT`, `CELERY_TASK_SOFT_TIME_LIMIT` | Task timeouts (soft limit should stay below hard limit).          |
+| `CORE_SERVICE_URL`                                      | Base URL for the core service (`http://core:8000` inside Docker). |
+
 
 ### Email (for password reset)
 
-| Variable | Purpose |
-|----------|---------|
-| `EMAIL_HOST` | SMTP server (e.g. `smtp.gmail.com`). |
-| `EMAIL_PORT` | SMTP port. |
-| `EMAIL_USE_TLS` | Enable TLS (`True`/`False`). |
-| `EMAIL_HOST_USER` | SMTP login email. |
-| `EMAIL_HOST_PASSWORD` | SMTP app password. |
-| `DEFAULT_FROM_EMAIL` | Sender address for outgoing emails. |
+
+| Variable              | Purpose                              |
+| --------------------- | ------------------------------------ |
+| `EMAIL_HOST`          | SMTP server (e.g. `smtp.gmail.com`). |
+| `EMAIL_PORT`          | SMTP port.                           |
+| `EMAIL_USE_TLS`       | Enable TLS (`True`/`False`).         |
+| `EMAIL_HOST_USER`     | SMTP login email.                    |
+| `EMAIL_HOST_PASSWORD` | SMTP app password.                   |
+| `DEFAULT_FROM_EMAIL`  | Sender address for outgoing emails.  |
+
 
 ### Core service (quantum simulation)
 
 These are set in `docker-compose.yml` under the `core` service and can be overridden with host environment variables or a `.env` file:
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `DB_PATH` | `/data/h2osim.db` | SQLite database path for simulation state. |
-| `CORE_WORKERS` | `2` | Number of process pool workers for parallel simulation. |
-| `USE_VQE` | `1` | Enable VQE quantum refinement (`1`) or use Hartree-Fock only (`0`). |
-| `VQE_ACTIVE_ELECTRONS` | `4` | Number of active electrons in the VQE active space. |
-| `VQE_ACTIVE_ORBITALS` | `4` | Number of active orbitals in the VQE active space. |
-| `VQE_MAX_ITERATIONS` | `80` | Maximum VQE optimizer iterations. |
-| `IBM_QUANTUM_TOKEN` | *(empty)* | IBM Quantum API token. When set, VQE runs on real quantum hardware instead of the simulator. |
-| `IBM_QUANTUM_BACKEND` | `ibm_sherbrooke` | IBM Quantum backend device name. |
-| `IBM_QUANTUM_SHOTS` | `1024` | Number of measurement shots per VQE circuit on hardware. |
+
+| Variable               | Default           | Purpose                                                                                      |
+| ---------------------- | ----------------- | -------------------------------------------------------------------------------------------- |
+| `DB_PATH`              | `/data/h2osim.db` | SQLite database path for simulation state.                                                   |
+| `CORE_WORKERS`         | `2`               | Number of process pool workers for parallel simulation.                                      |
+| `USE_VQE`              | `1`               | Enable VQE quantum refinement (`1`) or use Hartree-Fock only (`0`).                          |
+| `VQE_ACTIVE_ELECTRONS` | `4`               | Number of active electrons in the VQE active space.                                          |
+| `VQE_ACTIVE_ORBITALS`  | `4`               | Number of active orbitals in the VQE active space.                                           |
+| `VQE_MAX_ITERATIONS`   | `80`              | Maximum VQE optimizer iterations.                                                            |
+| `IBM_QUANTUM_TOKEN`    | *(empty)*         | IBM Quantum API token. When set, VQE runs on real quantum hardware instead of the simulator. |
+| `IBM_QUANTUM_BACKEND`  | `ibm_sherbrooke`  | IBM Quantum backend device name.                                                             |
+| `IBM_QUANTUM_SHOTS`    | `1024`            | Number of measurement shots per VQE circuit on hardware.                                     |
+
 
 ### Optional / feature-specific
 
-| Variable | Purpose |
-|----------|---------|
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth. |
-| `LINUX_APPIMAGE_PATH` | Path to a desktop artifact served by Django (see [server/backend/backend/settings.py](server/backend/backend/settings.py)). |
-| `GEMSTAT_DATASET_DIR` | Reserved in `env.example`; ingestion uses the path you pass to `sync_gemstat_measurements` (see below). |
+
+| Variable                                   | Purpose                                                                                                                     |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth.                                                                                                               |
+| `LINUX_APPIMAGE_PATH`                      | Path to a desktop artifact served by Django (see [server/backend/backend/settings.py](server/backend/backend/settings.py)). |
+| `GEMSTAT_DATASET_DIR`                      | Reserved in `env.example`; ingestion uses the path you pass to `sync_gemstat_measurements` (see below).                     |
+
 
 ### Example `server/.env` (replace all secrets)
 
@@ -276,13 +327,13 @@ The archive is licensed **CC BY 4.0**; credit the dataset and authors as require
 
 ### Where to put the files
 
-1. Create a folder **`server/backend/dataset/`** on your machine (repo root relative path).
+1. Create a folder `**server/backend/dataset/`** on your machine (repo root relative path).
 2. Extract or copy CSVs so **all needed files sit in that folder** (flat directory). The importer loads station and parameter catalogs from:
-   - `GEMStat_station_metadata.csv`
-   - `GEMStat_parameter_metadata.csv`
+  - `GEMStat_station_metadata.csv`
+  - `GEMStat_parameter_metadata.csv`
    Files whose names start with `GEMStat_` are not used as parameter timeseries inputs; other `*.csv` files in the same directory are candidates for `--files`.
 
-Inside Docker, the same directory appears as **`/home/app/backend/dataset`** because `./server/backend` is bind-mounted to `/home/app/backend`.
+Inside Docker, the same directory appears as `**/home/app/backend/dataset`** because `./server/backend` is bind-mounted to `/home/app/backend`.
 
 ### Import command
 
